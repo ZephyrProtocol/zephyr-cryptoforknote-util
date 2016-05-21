@@ -100,7 +100,7 @@ NAN_METHOD(convert_blob) {
 
     if (!get_block_hashing_blob(b, output))
         return THROW_ERROR_EXCEPTION("Failed to create mining block");
-    
+
     v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
     info.GetReturnValue().Set(
         returnValue
@@ -141,7 +141,7 @@ NAN_METHOD(convert_blob_fa) {
 //    info.GetReturnValue().Set(
 //        returnValue
 //    );
-    
+
     v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
     info.GetReturnValue().Set(
         returnValue
@@ -168,7 +168,7 @@ void get_block_id(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     crypto::hash block_id;
     if (!get_block_hash(b, block_id))
         return THROW_ERROR_EXCEPTION("Failed to calculate hash for block");
-    
+
     char *cstr = reinterpret_cast<char*>(&block_id);
     v8::Local<v8::Value> returnValue = Nan::CopyBuffer(cstr, 32).ToLocalChecked();
     info.GetReturnValue().Set(
@@ -296,7 +296,7 @@ void address_decode(const Nan::FunctionCallbackInfo<v8::Value>& info) {
         info.GetReturnValue().Set(Nan::Undefined());
     }
     //    info.GetReturnValue().Set(Nan::Undefined());
-    
+
 
     account_public_address adr;
     if (!::serialization::parse_binary(data, adr) || !crypto::check_key(adr.m_spend_public_key) || !crypto::check_key(adr.m_view_public_key))
