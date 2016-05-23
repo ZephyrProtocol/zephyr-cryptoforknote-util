@@ -80,34 +80,7 @@ static bool construct_parent_block(const cryptonote::block& b, cryptonote::block
     return fillExtra(parent_block, b);
 }
 
-NAN_METHOD(convert_blob) {
-
-    if (info.Length() < 1)
-        return THROW_ERROR_EXCEPTION("You must provide one argument.");
-
-    Local<Object> target = info[0]->ToObject();
-
-    if (!Buffer::HasInstance(target))
-        return THROW_ERROR_EXCEPTION("Argument should be a buffer object.");
-
-    blobdata input = std::string(Buffer::Data(target), Buffer::Length(target));
-    blobdata output = "";
-
-    //convert
-    block b = AUTO_VAL_INIT(b);
-    if (!parse_and_validate_block_from_blob(input, b))
-        return THROW_ERROR_EXCEPTION("Failed to parse block");
-
-    if (!get_block_hashing_blob(b, output))
-        return THROW_ERROR_EXCEPTION("Failed to create mining block");
-
-    v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
-    info.GetReturnValue().Set(
-        returnValue
-    );
-}
-
-NAN_METHOD(convert_blob_fa) {
+void convert_blob(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
     if (info.Length() < 1)
         return THROW_ERROR_EXCEPTION("You must provide one argument.");
@@ -136,11 +109,6 @@ NAN_METHOD(convert_blob_fa) {
         if (!get_block_hashing_blob(parent_block, output))
             return THROW_ERROR_EXCEPTION("Failed to create mining block");
     }
-//    Local<Object> v8::Local<v8::Value> returnValue =  Nan::NewBuffer(output.length()).ToLocalChecked();
-//    memcpy(Buffer::Data(returnValue), output.c_str(), output.length());
-//    info.GetReturnValue().Set(
-//        returnValue
-//    );
 
     v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
     info.GetReturnValue().Set(
@@ -198,41 +166,9 @@ void construct_block_blob(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     block b = AUTO_VAL_INIT(b);
     if (!parse_and_validate_block_from_blob(block_template_blob, b))
         return THROW_ERROR_EXCEPTION("Failed to parse block");
-    b.nonce = nonce;
-    if (!block_to_blob(b, output))
-        return THROW_ERROR_EXCEPTION("Failed to convert block to blob");
-
-    v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
-    info.GetReturnValue().Set(
-        returnValue
-    );
-}
-
-void construct_block_blob_fa(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-
-    if (info.Length() < 2)
-        return THROW_ERROR_EXCEPTION("You must provide two arguments.");
-
-    Local<Object> block_template_buf = info[0]->ToObject();
-    Local<Object> nonce_buf = info[1]->ToObject();
-
-    if (!Buffer::HasInstance(block_template_buf) || !Buffer::HasInstance(nonce_buf))
-        return THROW_ERROR_EXCEPTION("Both arguments should be buffer objects.");
-
-    if (Buffer::Length(nonce_buf) != 4)
-        return THROW_ERROR_EXCEPTION("Nonce buffer has invalid size.");
-
-    uint32_t nonce = *reinterpret_cast<uint32_t*>(Buffer::Data(nonce_buf));
-
-    blobdata block_template_blob = std::string(Buffer::Data(block_template_buf), Buffer::Length(block_template_buf));
-    blobdata output = "";
-
-    block b = AUTO_VAL_INIT(b);
-    if (!parse_and_validate_block_from_blob(block_template_blob, b))
-        return THROW_ERROR_EXCEPTION("Failed to parse block");
 
     b.nonce = nonce;
-    if (b.major_version == BLOCK_MAJOR_VERSION_2) {
+    if (b.major_version == BLOCK_MAJOR_VERSION_2 || b.major_version == BLOCK_MAJOR_VERSION_3) {
         block parent_block;
         b.parent_block.nonce = nonce;
         if (!construct_parent_block(b, parent_block))
@@ -244,32 +180,6 @@ void construct_block_blob_fa(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
     if (!block_to_blob(b, output))
         return THROW_ERROR_EXCEPTION("Failed to convert block to blob");
-
-    v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
-    info.GetReturnValue().Set(
-        returnValue
-    );
-}
-
-void convert_blob_bb(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-
-    if (info.Length() < 1)
-        return THROW_ERROR_EXCEPTION("You must provide one argument.");
-
-    Local<Object> target = info[0]->ToObject();
-
-    if (!Buffer::HasInstance(target))
-        return THROW_ERROR_EXCEPTION("Argument should be a buffer object.");
-
-    blobdata input = std::string(Buffer::Data(target), Buffer::Length(target));
-    blobdata output = "";
-
-    //convert
-    bb_block b = AUTO_VAL_INIT(b);
-    if (!parse_and_validate_block_from_blob(input, b)) {
-        return THROW_ERROR_EXCEPTION("Failed to parse block");
-    }
-    output = get_block_hashing_blob(b);
 
     v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
     info.GetReturnValue().Set(
@@ -325,7 +235,6 @@ NAN_MODULE_INIT(init) {
     Nan::Set(target, Nan::New("construct_block_blob").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(construct_block_blob)).ToLocalChecked());
     Nan::Set(target, Nan::New("get_block_id").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(get_block_id)).ToLocalChecked());
     Nan::Set(target, Nan::New("convert_blob").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(convert_blob)).ToLocalChecked());
-    Nan::Set(target, Nan::New("convert_blob_bb").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(convert_blob_bb)).ToLocalChecked());
     Nan::Set(target, Nan::New("address_decode").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(address_decode)).ToLocalChecked());
 }
 
