@@ -4,7 +4,6 @@
             "target_name": "cryptonote",
             "sources": [
                 "src/main.cc",
-                "src/cryptonote_core/cryptonote_format_utils.cpp",
             ],
             "include_dirs": [
                 "src",
