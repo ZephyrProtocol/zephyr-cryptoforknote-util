@@ -83,9 +83,7 @@ NAN_METHOD(convert_blob) {
 
     //convert
     block b = AUTO_VAL_INIT(b);
-    puts("[1");
     if (!parse_and_validate_block_from_blob(input, b)) return THROW_ERROR_EXCEPTION("Failed to parse block");
-    puts("]1");
 
     if (b.major_version < BLOCK_MAJOR_VERSION_2) {
         if (!get_block_hashing_blob(b, output)) return THROW_ERROR_EXCEPTION("Failed to create mining block");
