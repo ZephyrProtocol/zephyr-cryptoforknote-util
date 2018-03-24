@@ -16,10 +16,6 @@
 
 #define THROW_ERROR_EXCEPTION(x) Nan::ThrowError(x)
 
-void callback(char* data, void* hint) {
-  free(data);
-}
-
 using namespace node;
 using namespace v8;
 using namespace cryptonote;
@@ -41,12 +37,10 @@ blobdata uint64be_to_blob(uint64_t num) {
 static bool fillExtra(cryptonote::block& block1, const cryptonote::block& block2) {
     cryptonote::tx_extra_merge_mining_tag mm_tag;
     mm_tag.depth = 0;
-    if (!cryptonote::get_block_header_hash(block2, mm_tag.merkle_root))
-        return false;
+    if (!cryptonote::get_block_header_hash(block2, mm_tag.merkle_root)) return false;
 
     block1.miner_tx.extra.clear();
-    if (!cryptonote::append_mm_tag_to_extra(block1.miner_tx.extra, mm_tag))
-        return false;
+    if (!cryptonote::append_mm_tag_to_extra(block1.miner_tx.extra, mm_tag)) return false;
 
     return true;
 }
@@ -80,83 +74,65 @@ static bool construct_parent_block(const cryptonote::block& b, cryptonote::block
     return fillExtra(parent_block, b);
 }
 
-void convert_blob(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(convert_blob) {
+    NanScope();
 
-    if (info.Length() < 1)
-        return THROW_ERROR_EXCEPTION("You must provide one argument.");
+    if (args.Length() < 1) return THROW_ERROR_EXCEPTION("You must provide one argument.");
 
-    Local<Object> target = info[0]->ToObject();
+    Local<Object> target = args[0]->ToObject();
 
-    if (!Buffer::HasInstance(target))
-        return THROW_ERROR_EXCEPTION("Argument should be a buffer object.");
+    if (!Buffer::HasInstance(target)) return THROW_ERROR_EXCEPTION("Argument should be a buffer object.");
 
     blobdata input = std::string(Buffer::Data(target), Buffer::Length(target));
     blobdata output = "";
 
     //convert
     block b = AUTO_VAL_INIT(b);
-    if (!parse_and_validate_block_from_blob(input, b))
-        return THROW_ERROR_EXCEPTION("Failed to parse block");
+    if (!parse_and_validate_block_from_blob(input, b)) return THROW_ERROR_EXCEPTION("Failed to parse block");
 
     if (b.major_version < BLOCK_MAJOR_VERSION_2) {
-        if (!get_block_hashing_blob(b, output))
-            return THROW_ERROR_EXCEPTION("Failed to create mining block");
+        if (!get_block_hashing_blob(b, output)) return THROW_ERROR_EXCEPTION("Failed to create mining block");
     } else {
         block parent_block;
-        if (!construct_parent_block(b, parent_block))
-            return THROW_ERROR_EXCEPTION("Failed to construct parent block");
-
-        if (!get_block_hashing_blob(parent_block, output))
-            return THROW_ERROR_EXCEPTION("Failed to create mining block");
+        if (!construct_parent_block(b, parent_block)) return THROW_ERROR_EXCEPTION("Failed to construct parent block");
+        if (!get_block_hashing_blob(parent_block, output)) return THROW_ERROR_EXCEPTION("Failed to create mining block");
     }
 
-    v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
-    info.GetReturnValue().Set(
-        returnValue
-    );
+    NanReturnValue(NanNewBufferHandle(output.data(), output.size()));
 }
 
-void get_block_id(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(get_block_id) {
+    NanScope();
 
-    if (info.Length() < 1)
-        return THROW_ERROR_EXCEPTION("You must provide one argument.");
+    if (args.Length() < 1) return THROW_ERROR_EXCEPTION("You must provide one argument.");
 
-    Local<Object> target = info[0]->ToObject();
+    Local<Object> target = args[0]->ToObject();
 
-    if (!Buffer::HasInstance(target))
-        return THROW_ERROR_EXCEPTION("Argument should be a buffer object.");
+    if (!Buffer::HasInstance(target)) return THROW_ERROR_EXCEPTION("Argument should be a buffer object.");
 
     blobdata input = std::string(Buffer::Data(target), Buffer::Length(target));
     blobdata output = "";
 
     block b = AUTO_VAL_INIT(b);
-    if (!parse_and_validate_block_from_blob(input, b))
-        return THROW_ERROR_EXCEPTION("Failed to parse block");
+    if (!parse_and_validate_block_from_blob(input, b)) return THROW_ERROR_EXCEPTION("Failed to parse block");
 
     crypto::hash block_id;
-    if (!get_block_hash(b, block_id))
-        return THROW_ERROR_EXCEPTION("Failed to calculate hash for block");
+    if (!get_block_hash(b, block_id)) return THROW_ERROR_EXCEPTION("Failed to calculate hash for block");
 
-    char *cstr = reinterpret_cast<char*>(&block_id);
-    v8::Local<v8::Value> returnValue = Nan::CopyBuffer(cstr, 32).ToLocalChecked();
-    info.GetReturnValue().Set(
-        returnValue
-    );
+    NanReturnValue(NanNewBufferHandle(reinterpret_cast<char*>(&block_id), sizeof(block_id)));
 }
 
-void construct_block_blob(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(construct_block_blob) {
+    NanScope();
 
-    if (info.Length() < 2)
-        return THROW_ERROR_EXCEPTION("You must provide two arguments.");
+    if (args.Length() < 2) return THROW_ERROR_EXCEPTION("You must provide two arguments.");
 
-    Local<Object> block_template_buf = info[0]->ToObject();
-    Local<Object> nonce_buf = info[1]->ToObject();
+    Local<Object> block_template_buf = args[0]->ToObject();
+    Local<Object> nonce_buf = args[1]->ToObject();
 
-    if (!Buffer::HasInstance(block_template_buf) || !Buffer::HasInstance(nonce_buf))
-        return THROW_ERROR_EXCEPTION("Both arguments should be buffer objects.");
+    if (!Buffer::HasInstance(block_template_buf) || !Buffer::HasInstance(nonce_buf)) return THROW_ERROR_EXCEPTION("Both arguments should be buffer objects.");
 
-    if (Buffer::Length(nonce_buf) != 4)
-        return THROW_ERROR_EXCEPTION("Nonce buffer has invalid size.");
+    if (Buffer::Length(nonce_buf) != 4) return THROW_ERROR_EXCEPTION("Nonce buffer has invalid size.");
 
     uint32_t nonce = *reinterpret_cast<uint32_t*>(Buffer::Data(nonce_buf));
 
@@ -164,8 +140,7 @@ void construct_block_blob(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     blobdata output = "";
 
     block b = AUTO_VAL_INIT(b);
-    if (!parse_and_validate_block_from_blob(block_template_blob, b))
-        return THROW_ERROR_EXCEPTION("Failed to parse block");
+    if (!parse_and_validate_block_from_blob(block_template_blob, b)) return THROW_ERROR_EXCEPTION("Failed to parse block");
 
     b.nonce = nonce;
     if (b.major_version == BLOCK_MAJOR_VERSION_2 || b.major_version == BLOCK_MAJOR_VERSION_3) {
@@ -178,57 +153,39 @@ void construct_block_blob(const Nan::FunctionCallbackInfo<v8::Value>& info) {
             return THROW_ERROR_EXCEPTION("Failed to postprocess mining block");
     }
 
-    if (!block_to_blob(b, output))
-        return THROW_ERROR_EXCEPTION("Failed to convert block to blob");
+    if (!block_to_blob(b, output)) return THROW_ERROR_EXCEPTION("Failed to convert block to blob");
 
-    v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
-    info.GetReturnValue().Set(
-        returnValue
-    );
+    NanReturnValue(NanNewBufferHandle(output.data(), output.size()));
 }
 
-void address_decode(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
-    if (info.Length() < 1)
-        return THROW_ERROR_EXCEPTION("You must provide one argument.");
+NAN_METHOD(address_decode) {
+    NanEscapableScope();
 
-    Local<Object> target = info[0]->ToObject();
+    if (args.Length() < 1) return THROW_ERROR_EXCEPTION("You must provide one argument.");
 
-    if (!Buffer::HasInstance(target))
-        return THROW_ERROR_EXCEPTION("Argument should be a buffer object.");
+    Local<Object> target = args[0]->ToObject();
+
+    if (!Buffer::HasInstance(target)) return THROW_ERROR_EXCEPTION("Argument should be a buffer object.");
 
     blobdata input = std::string(Buffer::Data(target), Buffer::Length(target));
 
     blobdata data;
     uint64_t prefix;
-    if (!tools::base58::decode_addr(input, prefix, data))
-    {
-        info.GetReturnValue().Set(Nan::Undefined());
+    if (!tools::base58::decode_addr(input, prefix, data)) {
+        NanReturnUndefined();
+        return;
     }
-    //    info.GetReturnValue().Set(Nan::Undefined());
-
 
     account_public_address adr;
-    if (!::serialization::parse_binary(data, adr) || !crypto::check_key(adr.m_spend_public_key) || !crypto::check_key(adr.m_view_public_key))
-    {
-        if(data.length())
-        {
-            data = uint64be_to_blob(prefix) + data;
+    if (!::serialization::parse_binary(data, adr) || !crypto::check_key(adr.m_spend_public_key) || !crypto::check_key(adr.m_view_public_key)) {
+        if (!data.length()) {
+            NanReturnUndefined();
+            return;
         }
-        else
-        {
-            info.GetReturnValue().Set(Nan::Undefined());
-        }
-             v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)data.data(), data.size()).ToLocalChecked();
-        info.GetReturnValue().Set(
-            returnValue
-         );
-
-    }
-    else
-    {
-        info.GetReturnValue().Set(Nan::New(static_cast<uint32_t>(prefix)));
-    }
+        data = uint64be_to_blob(prefix) + data;
+        NanReturnValue(NanNewBufferHandle(data.data(), data.size()));
+    } else NanReturnValue(NanNew(static_cast<uint32_t>(prefix)));
 }
 
 NAN_MODULE_INIT(init) {
