@@ -197,7 +197,7 @@ void address_decode_integrated(const Nan::FunctionCallbackInfo<v8::Value>& info)
     uint64_t prefix;
     if (!tools::base58::decode_addr(input, prefix, data)) {
         info.GetReturnValue().Set(Nan::Undefined());
-        return
+        return;
     }
 
     integrated_address iadr;
