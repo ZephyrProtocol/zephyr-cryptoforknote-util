@@ -411,10 +411,6 @@ namespace cryptonote
 
     BEGIN_SERIALIZE_OBJECT()
       VARINT_FIELD_N("major_version", b.major_version);
-      if(b.major_version > CURRENT_BYTECOIN_BLOCK_MAJOR_VERSION) {
-        puts("!!! Too high bytecoin version to serialize it");
-        return false;
-      }
       VARINT_FIELD_N("minor_version", b.minor_version);
       VARINT_FIELD(timestamp);
       FIELD_N("prev_id", b.prev_id);
