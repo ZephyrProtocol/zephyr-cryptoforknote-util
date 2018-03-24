@@ -8,7 +8,7 @@
 #include "cryptonote_core/cryptonote_basic.h"
 #include "cryptonote_core/cryptonote_format_utils.h"
 #include "common/base58.h"
-//#include "serialization/binary_utils.h"
+#include "serialization/binary_utils.h"
 #include <nan.h>
 
 #define THROW_ERROR_EXCEPTION(x) Nan::ThrowError(x)
