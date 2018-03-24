@@ -5,7 +5,6 @@
             "sources": [
                 "src/main.cc",
                 "src/cryptonote_core/cryptonote_format_utils.cpp",
-                "src/common/base58.cpp",
             ],
             "include_dirs": [
                 "src",
