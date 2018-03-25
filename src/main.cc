@@ -72,6 +72,8 @@ static bool construct_parent_block(const cryptonote::block& b, cryptonote::block
 }
 
 NAN_METHOD(convert_blob) {
+    NanScope();
+
     if (info.Length() < 1) return THROW_ERROR_EXCEPTION("You must provide one argument.");
 
     Local<Object> target = info[0]->ToObject();
@@ -97,6 +99,8 @@ NAN_METHOD(convert_blob) {
 }
 
 NAN_METHOD(get_block_id) {
+    NanScope();
+
     if (info.Length() < 1) return THROW_ERROR_EXCEPTION("You must provide one argument.");
 
     Local<Object> target = info[0]->ToObject();
@@ -116,6 +120,8 @@ NAN_METHOD(get_block_id) {
 }
 
 NAN_METHOD(construct_block_blob) {
+    NanScope();
+
     if (info.Length() < 2) return THROW_ERROR_EXCEPTION("You must provide two arguments.");
 
     Local<Object> block_template_buf = info[0]->ToObject();
@@ -146,8 +152,9 @@ NAN_METHOD(construct_block_blob) {
     NanReturnValue(NanNewBufferHandle(output.data(), output.size()));
 }
 
-
 NAN_METHOD(address_decode) {
+    NanEscapableScope();
+
     if (info.Length() < 1) return THROW_ERROR_EXCEPTION("You must provide one argument.");
 
     Local<Object> target = info[0]->ToObject();
@@ -171,6 +178,8 @@ NAN_METHOD(address_decode) {
 }
 
 NAN_METHOD(address_decode_integrated) {
+    NanEscapableScope();
+
     if (info.Length() < 1) return THROW_ERROR_EXCEPTION("You must provide one argument.");
 
     Local<Object> target = info[0]->ToObject();
