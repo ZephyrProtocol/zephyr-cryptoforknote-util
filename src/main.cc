@@ -93,11 +93,10 @@ NAN_METHOD(convert_blob) {
         if (!get_block_hashing_blob(b, output)) return THROW_ERROR_EXCEPTION("Failed to create mining block");
     }
 
-    v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
-    info.GetReturnValue().Set(returnValue);
+    NanReturnValue(NanNewBufferHandle(output.data(), output.size()));
 }
 
-void get_block_id(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(get_block_id) {
     if (info.Length() < 1) return THROW_ERROR_EXCEPTION("You must provide one argument.");
 
     Local<Object> target = info[0]->ToObject();
@@ -113,12 +112,10 @@ void get_block_id(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     crypto::hash block_id;
     if (!get_block_hash(b, block_id)) return THROW_ERROR_EXCEPTION("Failed to calculate hash for block");
 
-    char *cstr = reinterpret_cast<char*>(&block_id);
-    v8::Local<v8::Value> returnValue = Nan::CopyBuffer(cstr, 32).ToLocalChecked();
-    info.GetReturnValue().Set(returnValue);
+    NanReturnValue(NanNewBufferHandle(reinterpret_cast<char*>(&block_id), sizeof(block_id)));
 }
 
-void construct_block_blob(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(construct_block_blob) {
     if (info.Length() < 2) return THROW_ERROR_EXCEPTION("You must provide two arguments.");
 
     Local<Object> block_template_buf = info[0]->ToObject();
@@ -146,12 +143,11 @@ void construct_block_blob(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
     if (!block_to_blob(b, output)) return THROW_ERROR_EXCEPTION("Failed to convert block to blob");
 
-    v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
-    info.GetReturnValue().Set(returnValue);
+    NanReturnValue(NanNewBufferHandle(output.data(), output.size()));
 }
 
 
-void address_decode(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(address_decode) {
     if (info.Length() < 1) return THROW_ERROR_EXCEPTION("You must provide one argument.");
 
     Local<Object> target = info[0]->ToObject();
@@ -162,26 +158,19 @@ void address_decode(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
     blobdata data;
     uint64_t prefix;
-    if (!tools::base58::decode_addr(input, prefix, data)) {
-        info.GetReturnValue().Set(Nan::Undefined());
-        return;
-    }
+    if (!tools::base58::decode_addr(input, prefix, data)) { NanReturnUndefined(); return; }
 
     account_public_address adr;
     if (!::serialization::parse_binary(data, adr) || !crypto::check_key(adr.m_spend_public_key) || !crypto::check_key(adr.m_view_public_key)) {
-        if (!data.length()) {
-            info.GetReturnValue().Set(Nan::Undefined());
-            return;
-        }
+        if (!data.length()) { NanReturnUndefined(); return; }
         data = uint64be_to_blob(prefix) + data;
-        v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)data.data(), data.size()).ToLocalChecked();
-        info.GetReturnValue().Set(returnValue);
+        NanReturnValue(NanNewBufferHandle(data.data(), data.size()));
     } else {
-        info.GetReturnValue().Set(Nan::New(static_cast<uint32_t>(prefix)));
+        NanReturnValue(NanNew(static_cast<uint32_t>(prefix)));
     }
 }
 
-void address_decode_integrated(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(address_decode_integrated) {
     if (info.Length() < 1) return THROW_ERROR_EXCEPTION("You must provide one argument.");
 
     Local<Object> target = info[0]->ToObject();
@@ -192,22 +181,15 @@ void address_decode_integrated(const Nan::FunctionCallbackInfo<v8::Value>& info)
 
     blobdata data;
     uint64_t prefix;
-    if (!tools::base58::decode_addr(input, prefix, data)) {
-        info.GetReturnValue().Set(Nan::Undefined());
-        return;
-    }
+    if (!tools::base58::decode_addr(input, prefix, data)) { NanReturnUndefined(); return; }
 
     integrated_address iadr;
     if (!::serialization::parse_binary(data, iadr) || !crypto::check_key(iadr.adr.m_spend_public_key) || !crypto::check_key(iadr.adr.m_view_public_key)) {
-        if (!data.length()) {
-            info.GetReturnValue().Set(Nan::Undefined());
-            return;
-        }
+        if (!data.length()) { NanReturnUndefined(); return; }
         data = uint64be_to_blob(prefix) + data;
-        v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)data.data(), data.size()).ToLocalChecked();
-        info.GetReturnValue().Set(returnValue);
+        NanReturnValue(NanNewBufferHandle(data.data(), data.size()));
     } else {
-        info.GetReturnValue().Set(Nan::New(static_cast<uint32_t>(prefix)));
+        NanReturnValue(NanNew(static_cast<uint32_t>(prefix)));
     }
 }
 
