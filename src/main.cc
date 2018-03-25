@@ -87,10 +87,10 @@ NAN_METHOD(convert_blob) {
 
     //convert
     block b = AUTO_VAL_INIT(b);
-    //b.blob_type = blob_type;
+    b.blob_type = blob_type;
     if (!parse_and_validate_block_from_blob(input, b)) return THROW_ERROR_EXCEPTION("Failed to parse block");
 
-    if (b.major_version == BLOCK_MAJOR_VERSION_2 || b.major_version == BLOCK_MAJOR_VERSION_3) {
+    if (blob_type == BLOB_TYPE_FORKNOTE2) {
         block parent_block;
         if (!construct_parent_block(b, parent_block)) return THROW_ERROR_EXCEPTION("Failed to construct parent block");
         if (!get_block_hashing_blob(parent_block, output)) return THROW_ERROR_EXCEPTION("Failed to create mining block");
@@ -118,7 +118,7 @@ NAN_METHOD(get_block_id) {
     }
 
     block b = AUTO_VAL_INIT(b);
-    //b.blob_type = blob_type;
+    b.blob_type = blob_type;
     if (!parse_and_validate_block_from_blob(input, b)) return THROW_ERROR_EXCEPTION("Failed to parse block");
 
     crypto::hash block_id;
@@ -149,11 +149,11 @@ NAN_METHOD(construct_block_blob) {
     }
 
     block b = AUTO_VAL_INIT(b);
-    //b.blob_type = blob_type;
+    b.blob_type = blob_type;
     if (!parse_and_validate_block_from_blob(block_template_blob, b)) return THROW_ERROR_EXCEPTION("Failed to parse block");
 
     b.nonce = nonce;
-    if (b.major_version == BLOCK_MAJOR_VERSION_2 || b.major_version == BLOCK_MAJOR_VERSION_3) {
+    if (blob_type == BLOB_TYPE_FORKNOTE2) {
         block parent_block;
         b.parent_block.nonce = nonce;
         if (!construct_parent_block(b, parent_block)) return THROW_ERROR_EXCEPTION("Failed to construct parent block");
