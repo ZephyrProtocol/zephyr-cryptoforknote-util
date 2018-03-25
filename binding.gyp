@@ -1,7 +1,7 @@
 {
     "targets": [
         {
-            "target_name": "forknote",
+            "target_name": "cryptoforknote",
             "sources": [
                 "src/main.cc",
                 "src/cryptonote_core/cryptonote_format_utils.cpp",

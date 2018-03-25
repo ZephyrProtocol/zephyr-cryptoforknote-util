@@ -218,4 +218,4 @@ NAN_MODULE_INIT(init) {
     Nan::Set(target, Nan::New("address_decode_integrated").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(address_decode_integrated)).ToLocalChecked());
 }
 
-NODE_MODULE(forknote, init)
+NODE_MODULE(cryptoforknote, init)
