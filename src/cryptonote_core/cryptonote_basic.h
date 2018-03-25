@@ -471,7 +471,7 @@ namespace cryptonote
 
   struct block_header
   {
-    enum BLOB_TYPE blob_type;
+    //enum BLOB_TYPE blob_type;
 
     uint8_t major_version;
     uint8_t minor_version;
@@ -482,9 +482,9 @@ namespace cryptonote
     BEGIN_SERIALIZE()
       VARINT_FIELD(major_version)
       VARINT_FIELD(minor_version)
-      if (blob_type != BLOB_TYPE_FORKNOTE2) VARINT_FIELD(timestamp)
+      if (BLOB_TYPE_CRYPTONOTE != BLOB_TYPE_FORKNOTE2) VARINT_FIELD(timestamp)
       FIELD(prev_id)
-      if (blob_type != BLOB_TYPE_FORKNOTE2) FIELD(nonce)
+      if (BLOB_TYPE_CRYPTONOTE != BLOB_TYPE_FORKNOTE2) FIELD(nonce)
     END_SERIALIZE()
   };
 
@@ -497,7 +497,7 @@ namespace cryptonote
 
     BEGIN_SERIALIZE_OBJECT()
       FIELDS(*static_cast<block_header *>(this))
-      if (blob_type == BLOB_TYPE_FORKNOTE2)
+      if (BLOB_TYPE_CRYPTONOTE == BLOB_TYPE_FORKNOTE2)
       {
         auto sbb = make_serializable_bytecoin_block(*this, false, false);
         FIELD_N("parent_block", sbb);
