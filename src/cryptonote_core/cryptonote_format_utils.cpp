@@ -344,17 +344,6 @@ namespace cryptonote
     cn_fast_hash(blob.data(), blob.size(), res);
   }
   //---------------------------------------------------------------
-  std::string print_money(uint64_t amount)
-  {
-    std::string s = std::to_string(amount);
-    if(s.size() < CRYPTONOTE_DISPLAY_DECIMAL_POINT+1)
-    {
-      s.insert(0, CRYPTONOTE_DISPLAY_DECIMAL_POINT+1 - s.size(), '0');
-    }
-    s.insert(s.size() - CRYPTONOTE_DISPLAY_DECIMAL_POINT, ".");
-    return s;
-  }
-  //---------------------------------------------------------------
   crypto::hash get_blob_hash(const blobdata& blob)
   {
     crypto::hash h = null_hash;
