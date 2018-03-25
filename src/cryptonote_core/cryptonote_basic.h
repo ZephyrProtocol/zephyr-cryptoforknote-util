@@ -174,10 +174,6 @@ namespace cryptonote
 
     BEGIN_SERIALIZE()
       VARINT_FIELD(version)
-      //if(8 < version) {
-      //  printf("!!! Current tx version %zu exceeds %u max", version, 8);
-      //  return false;
-      //}
       VARINT_FIELD(unlock_time)
       FIELD(vin)
       FIELD(vout)
@@ -475,6 +471,8 @@ namespace cryptonote
 
   struct block_header
   {
+    enum BLOB_TYPE blob_type;
+
     uint8_t major_version;
     uint8_t minor_version;
     uint64_t timestamp;
@@ -484,16 +482,9 @@ namespace cryptonote
     BEGIN_SERIALIZE()
       VARINT_FIELD(major_version)
       VARINT_FIELD(minor_version)
-      if (BLOCK_MAJOR_VERSION_2 != major_version && BLOCK_MAJOR_VERSION_3 != major_version)
-      {
-        printf("block_header: block version %u\n", major_version);
-        VARINT_FIELD(timestamp)
-      }
+      if (blob_type != BLOB_TYPE_FORKNOTE2) VARINT_FIELD(timestamp)
       FIELD(prev_id)
-      if (BLOCK_MAJOR_VERSION_2 != major_version && BLOCK_MAJOR_VERSION_3 != major_version)
-      {
-        FIELD(nonce)
-      }
+      if (blob_type != BLOB_TYPE_FORKNOTE2) FIELD(nonce)
     END_SERIALIZE()
   };
 
@@ -506,15 +497,10 @@ namespace cryptonote
 
     BEGIN_SERIALIZE_OBJECT()
       FIELDS(*static_cast<block_header *>(this))
-      if (BLOCK_MAJOR_VERSION_2 == major_version || BLOCK_MAJOR_VERSION_3 == major_version)
+      if (blob_type == BLOB_TYPE_FORKNOTE2)
       {
-        printf("block: block version %u\n", major_version);
-        try {
-          auto sbb = make_serializable_bytecoin_block(*this, false, false);
-          FIELD_N("parent_block", sbb);
-        } catch(...) {
-          puts("Exception!!!");
-        }
+        auto sbb = make_serializable_bytecoin_block(*this, false, false);
+        FIELD_N("parent_block", sbb);
       }
       FIELD(miner_tx)
       FIELD(tx_hashes)

@@ -509,9 +509,8 @@ namespace cryptonote
     if (!get_block_hashing_blob(b, blob))
       return false;
 
-    if (BLOCK_MAJOR_VERSION_2 == b.major_version || BLOCK_MAJOR_VERSION_3 == b.major_version)
+    if (b.blob_type == BLOB_TYPE_FORKNOTE2)
     {
-      printf("get_block_hash: block version %u\n", b.major_version);
       blobdata parent_blob;
       auto sbb = make_serializable_bytecoin_block(b, true, false);
       if (!t_serializable_object_to_blob(sbb, parent_blob))
