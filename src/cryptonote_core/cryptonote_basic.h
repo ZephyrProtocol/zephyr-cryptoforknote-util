@@ -174,10 +174,7 @@ namespace cryptonote
 
     BEGIN_SERIALIZE()
       VARINT_FIELD(version)
-      if(CURRENT_TRANSACTION_VERSION < version) {
-        puts("!!! Too high tx version for serialization");
-        return false;
-      }
+      if(MAX_TRANSACTION_VERSION < version) return false;
       VARINT_FIELD(unlock_time)
       FIELD(vin)
       FIELD(vout)
@@ -486,9 +483,7 @@ namespace cryptonote
       VARINT_FIELD(minor_version)
       if (BLOCK_MAJOR_VERSION_1 == major_version)
       {
-    puts("[6");
         VARINT_FIELD(timestamp)
-    puts("]6");
       }
       FIELD(prev_id)
       if (BLOCK_MAJOR_VERSION_1 == major_version)
@@ -509,10 +504,8 @@ namespace cryptonote
       FIELDS(*static_cast<block_header *>(this))
       if (BLOCK_MAJOR_VERSION_2 == major_version || BLOCK_MAJOR_VERSION_3 == major_version)
       {
-    puts("[7");
         auto sbb = make_serializable_bytecoin_block(*this, false, false);
         FIELD_N("parent_block", sbb);
-    puts("]7");
       }
       FIELD(miner_tx)
       FIELD(tx_hashes)
