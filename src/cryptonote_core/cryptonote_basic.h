@@ -233,7 +233,7 @@ namespace cryptonote
         }
         ar.end_array();
       }
-      else 
+      else
       {
         ar.tag("rct_signatures");
         if (!vin.empty())
@@ -574,18 +574,18 @@ namespace cryptonote
   };
 
   struct integrated_address {
-      account_public_address adr;
-      crypto::hash8 payment_id;
+    account_public_address adr;
+    crypto::hash8 payment_id;
 
-      BEGIN_SERIALIZE_OBJECT()
-      FIELD(adr)
-      FIELD(payment_id)
-      END_SERIALIZE()
+    BEGIN_SERIALIZE_OBJECT()
+    FIELD(adr)
+    FIELD(payment_id)
+    END_SERIALIZE()
 
-      BEGIN_KV_SERIALIZE_MAP()
-      KV_SERIALIZE(adr)
-      KV_SERIALIZE(payment_id)
-      END_KV_SERIALIZE_MAP()
+    BEGIN_KV_SERIALIZE_MAP()
+    KV_SERIALIZE(adr)
+    KV_SERIALIZE(payment_id)
+    END_KV_SERIALIZE_MAP()
   };
 
   struct keypair

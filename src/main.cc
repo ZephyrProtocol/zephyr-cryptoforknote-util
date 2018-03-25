@@ -29,8 +29,7 @@ blobdata uint64be_to_blob(uint64_t num) {
     res[7] = num       & 0xff;
     return res;
 }
-
-
+                                    
 static bool fillExtra(cryptonote::block& block1, const cryptonote::block& block2) {
     cryptonote::tx_extra_merge_mining_tag mm_tag;
     mm_tag.depth = 0;
@@ -97,7 +96,7 @@ NAN_METHOD(convert_blob) {
     info.GetReturnValue().Set(returnValue);
 }
 
-void get_block_id(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(get_block_id) {
     if (info.Length() < 1) return THROW_ERROR_EXCEPTION("You must provide one argument.");
 
     Local<Object> target = info[0]->ToObject();
@@ -118,7 +117,7 @@ void get_block_id(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     info.GetReturnValue().Set(returnValue);
 }
 
-void construct_block_blob(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(construct_block_blob) {
     if (info.Length() < 2) return THROW_ERROR_EXCEPTION("You must provide two arguments.");
 
     Local<Object> block_template_buf = info[0]->ToObject();
@@ -151,7 +150,7 @@ void construct_block_blob(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 }
 
 
-void address_decode(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(address_decode) {
     if (info.Length() < 1) return THROW_ERROR_EXCEPTION("You must provide one argument.");
 
     Local<Object> target = info[0]->ToObject();
@@ -181,7 +180,7 @@ void address_decode(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     }
 }
 
-void address_decode_integrated(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+NAN_METHOD(address_decode_integrated) {
     if (info.Length() < 1) return THROW_ERROR_EXCEPTION("You must provide one argument.");
 
     Local<Object> target = info[0]->ToObject();
