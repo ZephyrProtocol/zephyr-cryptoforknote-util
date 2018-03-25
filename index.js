@@ -1,1 +1,1 @@
-module.exports = require('bindings')('cryptonote.node')
+module.exports = require('bindings')('forknote.node')
