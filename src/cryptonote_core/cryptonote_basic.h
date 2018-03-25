@@ -486,6 +486,7 @@ namespace cryptonote
       VARINT_FIELD(minor_version)
       if (BLOCK_MAJOR_VERSION_2 != major_version && BLOCK_MAJOR_VERSION_3 != major_version)
       {
+        printf("block_header: block version %u\n", major_version);
         VARINT_FIELD(timestamp)
       }
       FIELD(prev_id)
@@ -507,6 +508,7 @@ namespace cryptonote
       FIELDS(*static_cast<block_header *>(this))
       if (BLOCK_MAJOR_VERSION_2 == major_version || BLOCK_MAJOR_VERSION_3 == major_version)
       {
+        printf("block: block version %u\n", major_version);
         auto sbb = make_serializable_bytecoin_block(*this, false, false);
         FIELD_N("parent_block", sbb);
       }
