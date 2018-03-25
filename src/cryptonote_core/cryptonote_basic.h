@@ -507,7 +507,7 @@ namespace cryptonote
 
     BEGIN_SERIALIZE_OBJECT()
       FIELDS(*static_cast<block_header *>(this))
-      if (BLOCK_MAJOR_VERSION_2 <= major_version)
+      if (BLOCK_MAJOR_VERSION_2 == major_version || BLOCK_MAJOR_VERSION_3 == major_version)
       {
     puts("[7");
         auto sbb = make_serializable_bytecoin_block(*this, false, false);
