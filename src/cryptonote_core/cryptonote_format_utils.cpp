@@ -260,7 +260,7 @@ namespace cryptonote
   //---------------------------------------------------------------
   uint64_t get_block_height(const block& b)
   {
-    CHECK_AND_ASSERT_MES(b.miner_tx.vin.size() == 1, 0, "wrong miner tx in block: " << get_block_hash(b) << ", b.miner_tx.vin.size() != 1");
+    //CHECK_AND_ASSERT_MES(b.miner_tx.vin.size() == 1, 0, "wrong miner tx in block: " << get_block_hash(b) << ", b.miner_tx.vin.size() != 1");
     CHECKED_GET_SPECIFIC_VARIANT(b.miner_tx.vin[0], const txin_gen, coinbase_in, 0);
     return coinbase_in.height;
   }
@@ -503,7 +503,7 @@ namespace cryptonote
     return blob;
   }
   //---------------------------------------------------------------
-  bool get_block_hash(const block& b, crypto::hash& res)
+  /*bool get_block_hash(const block& b, crypto::hash& res)
   {
     blobdata blob;
     if (!get_block_hashing_blob(b, blob))
@@ -521,14 +521,14 @@ namespace cryptonote
     }
 
     return get_object_hash(blob, res);
-  }
+  }*/
   //---------------------------------------------------------------
-  crypto::hash get_block_hash(const block& b)
+  /*crypto::hash get_block_hash(const block& b)
   {
     crypto::hash p = null_hash;
     get_block_hash(b, p);
     return p;
-  }
+  }*/
   //---------------------------------------------------------------
   bool get_block_header_hash(const block& b, crypto::hash& res)
   {
