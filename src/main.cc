@@ -118,7 +118,7 @@ NAN_METHOD(get_block_id) {
     }
 
     block b = AUTO_VAL_INIT(b);
-    b.block_type = blob_type;
+    b.blob_type = blob_type;
     if (!parse_and_validate_block_from_blob(input, b)) return THROW_ERROR_EXCEPTION("Failed to parse block");
 
     crypto::hash block_id;
