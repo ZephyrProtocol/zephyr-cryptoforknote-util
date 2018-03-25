@@ -174,10 +174,10 @@ namespace cryptonote
 
     BEGIN_SERIALIZE()
       VARINT_FIELD(version)
-      if(MAX_TRANSACTION_VERSION < version) {
-        printf("!!! Current tx version %u exceeds %u max", version, MAX_TRANSACTION_VERSION);
-        return false;
-      }
+      //if(MAX_TRANSACTION_VERSION < version) {
+      //  printf("!!! Current tx version %zu exceeds %zu max", version, MAX_TRANSACTION_VERSION);
+      //  return false;
+      //}
       VARINT_FIELD(unlock_time)
       FIELD(vin)
       FIELD(vout)
