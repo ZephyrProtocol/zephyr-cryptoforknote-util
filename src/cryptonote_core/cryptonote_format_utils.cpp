@@ -55,7 +55,7 @@ namespace cryptonote
     return true;
   }
   //---------------------------------------------------------------
-  bool construct_miner_tx(size_t height, size_t median_size, uint64_t already_generated_coins, size_t current_block_size, uint64_t fee, const account_public_address &miner_address, transaction& tx, const blobdata& extra_nonce, size_t max_outs) {
+  /*bool construct_miner_tx(size_t height, size_t median_size, uint64_t already_generated_coins, size_t current_block_size, uint64_t fee, const account_public_address &miner_address, transaction& tx, const blobdata& extra_nonce, size_t max_outs) {
     tx.vin.clear();
     tx.vout.clear();
     tx.extra.clear();
@@ -123,7 +123,7 @@ namespace cryptonote
     //LOG_PRINT("MINER_TX generated ok, block_reward=" << print_money(block_reward) << "("  << print_money(block_reward - fee) << "+" << print_money(fee)
     //  << "), current_block_size=" << current_block_size << ", already_generated_coins=" << already_generated_coins << ", tx_id=" << get_transaction_hash(tx), LOG_LEVEL_2);
     return true;
-  }
+  }*/
   //---------------------------------------------------------------
   bool generate_key_image_helper(const account_keys& ack, const crypto::public_key& tx_public_key, size_t real_output_index, keypair& in_ephemeral, crypto::key_image& ki)
   {
@@ -317,7 +317,7 @@ namespace cryptonote
     return true;
   }
   //---------------------------------------------------------------
-  bool construct_tx(const account_keys& sender_account_keys, const std::vector<tx_source_entry>& sources, const std::vector<tx_destination_entry>& destinations, std::vector<uint8_t> extra, transaction& tx, uint64_t unlock_time)
+  /*bool construct_tx(const account_keys& sender_account_keys, const std::vector<tx_source_entry>& sources, const std::vector<tx_destination_entry>& destinations, std::vector<uint8_t> extra, transaction& tx, uint64_t unlock_time)
   {
     tx.vin.clear();
     tx.vout.clear();
@@ -443,7 +443,7 @@ namespace cryptonote
     LOG_PRINT2("construct_tx.log", "transaction_created: " << get_transaction_hash(tx) << ENDL << obj_to_json_str(tx) << ENDL << ss_ring_s.str() , LOG_LEVEL_3);
 
     return true;
-  }
+  }*/
   //---------------------------------------------------------------
   bool get_inputs_money_amount(const transaction& tx, uint64_t& money)
   {
@@ -736,7 +736,7 @@ namespace cryptonote
     return get_object_hash(blob, res);
   }
   //---------------------------------------------------------------
-  bool generate_genesis_block(block& bl)
+  /*bool generate_genesis_block(block& bl)
   {
     //genesis block
     bl = boost::value_initialized<block>();
@@ -759,9 +759,9 @@ namespace cryptonote
     bl.nonce = 10000;
     miner::find_nonce_for_given_block(bl, 1, 0);
     return true;
-  }
+  }*/
   //---------------------------------------------------------------
-  bool get_genesis_block_hash(crypto::hash& h)
+  /*bool get_genesis_block_hash(crypto::hash& h)
   {
     static std::atomic<bool> cached(false);
     static crypto::hash genesis_block_hash;
@@ -784,7 +784,7 @@ namespace cryptonote
 
     h = genesis_block_hash;
     return true;
-  }
+  }*/
   //---------------------------------------------------------------
   bool get_block_longhash(const block& b, crypto::hash& res, uint64_t height)
   {
@@ -904,7 +904,7 @@ namespace cryptonote
     return get_tx_tree_hash(txs_ids);
   }
   //---------------------------------------------------------------
-  bool check_proof_of_work_v1(const block& bl, difficulty_type current_diffic, crypto::hash& proof_of_work)
+  /*bool check_proof_of_work_v1(const block& bl, difficulty_type current_diffic, crypto::hash& proof_of_work)
   {
     if (BLOCK_MAJOR_VERSION_1 != bl.major_version)
       return false;
@@ -960,6 +960,6 @@ namespace cryptonote
     }
 
     CHECK_AND_ASSERT_MES(false, false, "unknown block major version: " << bl.major_version << "." << bl.minor_version);
-  }
+  }*/
   //---------------------------------------------------------------
 }
