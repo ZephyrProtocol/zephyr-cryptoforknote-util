@@ -1,7 +1,7 @@
 {
   "name": "cryptoforknote-util",
   "version": "0.9.1",
-  "main": "cryptonote",
+  "main": "cryptoforknote-util",
   "author": {
     "name": "LucasJones",
     "email": "lucasjonesdev@hotmail.co.uk"
