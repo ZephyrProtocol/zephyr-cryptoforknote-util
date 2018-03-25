@@ -80,41 +80,6 @@ namespace cryptonote
     return total;
   }
   //---------------------------------------------------------------
-  bool parse_amount(uint64_t& amount, const std::string& str_amount_)
-  {
-    std::string str_amount = str_amount_;
-    boost::algorithm::trim(str_amount);
-
-    size_t point_index = str_amount.find_first_of('.');
-    size_t fraction_size;
-    if (std::string::npos != point_index)
-    {
-      fraction_size = str_amount.size() - point_index - 1;
-      while (CRYPTONOTE_DISPLAY_DECIMAL_POINT < fraction_size && '0' == str_amount.back())
-      {
-        str_amount.erase(str_amount.size() - 1, 1);
-        --fraction_size;
-      }
-      if (CRYPTONOTE_DISPLAY_DECIMAL_POINT < fraction_size)
-        return false;
-      str_amount.erase(point_index, 1);
-    }
-    else
-    {
-      fraction_size = 0;
-    }
-
-    if (str_amount.empty())
-      return false;
-
-    if (fraction_size < CRYPTONOTE_DISPLAY_DECIMAL_POINT)
-    {
-      str_amount.append(CRYPTONOTE_DISPLAY_DECIMAL_POINT - fraction_size, '0');
-    }
-
-    return string_tools::get_xtype_from_string(amount, str_amount);
-  }
-  //---------------------------------------------------------------
   bool get_tx_fee(const transaction& tx, uint64_t & fee)
   {
     uint64_t amount_in = 0;
