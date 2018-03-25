@@ -511,10 +511,10 @@ namespace cryptonote
         printf("block: block version %u\n", major_version);
         try {
           auto sbb = make_serializable_bytecoin_block(*this, false, false);
+          FIELD_N("parent_block", sbb);
         } catch(...) {
           puts("Exception!!!");
         }
-        FIELD_N("parent_block", sbb);
       }
       FIELD(miner_tx)
       FIELD(tx_hashes)
