@@ -115,7 +115,6 @@ namespace cryptonote
 
     CHECK_AND_ASSERT_MES(summary_amounts == block_reward, false, "Failed to construct miner tx, summary_amounts = " << summary_amounts << " not equal block_reward = " << block_reward);
 
-    puts("[*] Using CURRENT_TRANSACTION_VERSION in construct_miner_tx");
     tx.version = CURRENT_TRANSACTION_VERSION;
     //lock
     tx.unlock_time = height + CRYPTONOTE_MINED_MONEY_UNLOCK_WINDOW;
@@ -323,7 +322,6 @@ namespace cryptonote
     tx.vout.clear();
     tx.signatures.clear();
 
-    puts("[*] Using CURRENT_TRANSACTION_VERSION in construct_tx");
     tx.version = CURRENT_TRANSACTION_VERSION;
     tx.unlock_time = unlock_time;
 
