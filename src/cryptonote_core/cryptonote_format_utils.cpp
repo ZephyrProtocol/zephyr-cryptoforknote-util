@@ -509,7 +509,7 @@ namespace cryptonote
     if (!get_block_hashing_blob(b, blob))
       return false;
 
-    if (b.blob_type == BLOB_TYPE_FORKNOTE2)
+    if (BLOB_TYPE_CRYPTONOTE == BLOB_TYPE_FORKNOTE2)
     {
       blobdata parent_blob;
       auto sbb = make_serializable_bytecoin_block(b, true, false);
