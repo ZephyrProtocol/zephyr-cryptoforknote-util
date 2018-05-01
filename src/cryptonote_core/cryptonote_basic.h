@@ -179,6 +179,7 @@ namespace cryptonote
 
       if (version == 1 && m_blob_type != BLOB_TYPE_CRYPTONOTE2)
       {
+	printf("%i\n", m_blob_type);
 	puts("xxx1");
         ar.tag("signatures");
         ar.begin_array();
