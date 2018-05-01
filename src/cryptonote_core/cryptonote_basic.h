@@ -179,8 +179,6 @@ namespace cryptonote
 
       if (version == 1 && blob_type != BLOB_TYPE_CRYPTONOTE2)
       {
-	printf("%i\n", blob_type);
-	puts("xxx1");
         ar.tag("signatures");
         ar.begin_array();
         PREPARE_CUSTOM_VECTOR_SERIALIZATION(vin.size(), signatures);
@@ -212,7 +210,6 @@ namespace cryptonote
       }
       else
       {
-	puts("xxx2");
         ar.tag("rct_signatures");
         if (!vin.empty())
         {
