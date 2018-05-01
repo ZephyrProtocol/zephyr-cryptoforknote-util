@@ -165,21 +165,21 @@ namespace cryptonote
 
   class transaction: public transaction_prefix
   {
-    enum BLOB_TYPE m_blob_type;
   public:
+    enum BLOB_TYPE blob_type;
     std::vector<std::vector<crypto::signature> > signatures; //count signatures  always the same as inputs count
     rct::rctSig rct_signatures;
 
-    transaction(enum BLOB_TYPE = BLOB_TYPE_CRYPTONOTE);
+    transaction();
     virtual ~transaction();
     void set_null();
 
     BEGIN_SERIALIZE_OBJECT()
       FIELDS(*static_cast<transaction_prefix *>(this))
 
-      if (version == 1 && m_blob_type != BLOB_TYPE_CRYPTONOTE2)
+      if (version == 1 && blob_type != BLOB_TYPE_CRYPTONOTE2)
       {
-	printf("%i\n", m_blob_type);
+	printf("%i\n", blob_type);
 	puts("xxx1");
         ar.tag("signatures");
         ar.begin_array();
@@ -238,10 +238,9 @@ namespace cryptonote
   };
 
   inline
-  transaction::transaction(enum BLOB_TYPE blob_type)
+  transaction::transaction()
   {
     set_null();
-    m_blob_type = blob_type;
   }
 
   inline
@@ -279,7 +278,7 @@ namespace cryptonote
   /*                                                                      */
   /************************************************************************/
 
-  const uint8_t CURRENT_BYTECOIN_BLOCK_MAJOR_VERSION = 1;
+  /*const uint8_t CURRENT_BYTECOIN_BLOCK_MAJOR_VERSION = 1;
 
   struct bytecoin_block
   {
@@ -367,7 +366,7 @@ namespace cryptonote
   };
 
   // Implemented below
-  inline serializable_bytecoin_block make_serializable_bytecoin_block(const block& b, bool hashing_serialization, bool header_only);
+  inline serializable_bytecoin_block make_serializable_bytecoin_block(const block& b, bool hashing_serialization, bool header_only);*/
 
   struct block_header
   {
@@ -395,7 +394,7 @@ namespace cryptonote
     transaction miner_tx;
     std::vector<crypto::hash> tx_hashes;
 
-    block() : miner_tx(blob_type) {}
+    void set_blob_type(enum BLOB_TYPE bt) { miner_tx.blob_type = blob_type = bt; }
 
     BEGIN_SERIALIZE_OBJECT()
       FIELDS(*static_cast<block_header *>(this))

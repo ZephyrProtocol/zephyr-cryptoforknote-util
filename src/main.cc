@@ -87,7 +87,7 @@ NAN_METHOD(convert_blob) {
 
     //convert
     block b = AUTO_VAL_INIT(b);
-    b.blob_type = blob_type;
+    b.set_blob_type(blob_type);
     if (!parse_and_validate_block_from_blob(input, b)) return THROW_ERROR_EXCEPTION("Failed to parse block");
 
     if (blob_type == BLOB_TYPE_FORKNOTE2) {
@@ -118,7 +118,7 @@ NAN_METHOD(get_block_id) {
     }
 
     block b = AUTO_VAL_INIT(b);
-    b.blob_type = blob_type;
+    b.set_blob_type(blob_type);
     if (!parse_and_validate_block_from_blob(input, b)) return THROW_ERROR_EXCEPTION("Failed to parse block");
 
     crypto::hash block_id;
@@ -149,7 +149,7 @@ NAN_METHOD(construct_block_blob) {
     }
 
     block b = AUTO_VAL_INIT(b);
-    b.blob_type = blob_type;
+    b.set_blob_type(blob_type);
     if (!parse_and_validate_block_from_blob(block_template_blob, b)) return THROW_ERROR_EXCEPTION("Failed to parse block");
 
     b.nonce = nonce;
