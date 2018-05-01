@@ -240,8 +240,8 @@ namespace cryptonote
   inline
   transaction::transaction(enum BLOB_TYPE blob_type)
   {
-    m_blob_type = blob_type;
     set_null();
+    m_blob_type = blob_type;
   }
 
   inline
