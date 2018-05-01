@@ -278,7 +278,7 @@ namespace cryptonote
   /*                                                                      */
   /************************************************************************/
 
-  /*const uint8_t CURRENT_BYTECOIN_BLOCK_MAJOR_VERSION = 1;
+  const uint8_t CURRENT_BYTECOIN_BLOCK_MAJOR_VERSION = 1;
 
   struct bytecoin_block
   {
@@ -366,7 +366,7 @@ namespace cryptonote
   };
 
   // Implemented below
-  inline serializable_bytecoin_block make_serializable_bytecoin_block(const block& b, bool hashing_serialization, bool header_only);*/
+  inline serializable_bytecoin_block make_serializable_bytecoin_block(const block& b, bool hashing_serialization, bool header_only);
 
   struct block_header
   {
