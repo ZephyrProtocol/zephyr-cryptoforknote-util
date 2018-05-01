@@ -389,8 +389,10 @@ namespace cryptonote
   {
     bytecoin_block parent_block;
 
-    transaction miner_tx(blob_type);
+    transaction miner_tx;
     std::vector<crypto::hash> tx_hashes;
+
+    block() : miner_tx(blob_type) {}
 
     BEGIN_SERIALIZE_OBJECT()
       FIELDS(*static_cast<block_header *>(this))
