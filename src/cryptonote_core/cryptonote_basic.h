@@ -235,7 +235,7 @@ namespace cryptonote
   };
 
   inline
-  transaction::transaction()
+  transaction::transaction() : blob_type(BLOB_TYPE_CRYPTONOTE)
   {
     set_null();
   }
