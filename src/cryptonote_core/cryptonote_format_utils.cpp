@@ -19,7 +19,7 @@ namespace cryptonote
   void get_transaction_prefix_hash(const transaction_prefix& tx, crypto::hash& h)
   {
     std::ostringstream s;
-    if (t.blob_type == BLOB_TYPE_CRYPTONOTE_RYO) s << "ryo-currency";
+    if (tx.blob_type == BLOB_TYPE_CRYPTONOTE_RYO) s << "ryo-currency";
     binary_archive<true> a(s);
     ::serialization::serialize(a, const_cast<transaction_prefix&>(tx));
     crypto::cn_fast_hash(s.str().data(), s.str().size(), h);

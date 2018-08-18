@@ -141,6 +141,7 @@ namespace cryptonote
   {
 
   public:
+    enum BLOB_TYPE blob_type;
     // tx information
     size_t   version;
     uint64_t unlock_time;  //number of block (or time), used as a limitation like: spend this tx not early then block/time
@@ -160,13 +161,12 @@ namespace cryptonote
 
 
   protected:
-    transaction_prefix(){}
+    transaction_prefix() : blob_type(BLOB_TYPE_CRYPTONOTE) {}
   };
 
   class transaction: public transaction_prefix
   {
   public:
-    enum BLOB_TYPE blob_type;
     std::vector<std::vector<crypto::signature> > signatures; //count signatures  always the same as inputs count
     rct::rctSig rct_signatures;
 
@@ -235,7 +235,7 @@ namespace cryptonote
   };
 
   inline
-  transaction::transaction() : blob_type(BLOB_TYPE_CRYPTONOTE)
+  transaction::transaction()
   {
     set_null();
   }
