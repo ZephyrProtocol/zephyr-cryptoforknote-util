@@ -45,6 +45,13 @@ inline bool do_serialize(Archive &ar, T &v)
   return ::serializer<Archive, T>::serialize(ar, v);
 }
 
+template <class Archive>
+inline bool do_serialize(Archive &ar, bool &v)
+{
+  ar.serialize_blob(&v, sizeof(v));
+  return true;
+}
+
 #ifndef __GNUC__
 #ifndef constexpr
 #define constexpr
