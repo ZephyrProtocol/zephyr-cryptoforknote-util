@@ -321,7 +321,7 @@ NAN_METHOD(address_decode_integrated) {
 
 
 /**
- * var mmShareBuffer = merge_blocks(shareBuffer, coins, blobtype, "monetaverde");
+ * var mmShareBuffer = merge_blocks(shareBuffer, childBlockTemplate);
  */
 NAN_METHOD(merge_blocks) {
 
@@ -361,6 +361,39 @@ NAN_METHOD(merge_blocks) {
 }
 
 
+NAN_METHOD(fill_extra) {
+    if (info.Length() < 2) return THROW_ERROR_EXCEPTION("You must provide two arguments (parentBlock, childBlock).");
+
+    Local<Object> target = info[0]->ToObject();
+    if (!Buffer::HasInstance(target)) return THROW_ERROR_EXCEPTION("Argument should be a buffer object.");
+    Local<Object> child_target = info[1]->ToObject();
+    if (!Buffer::HasInstance(child_target)) return THROW_ERROR_EXCEPTION("Argument should be a buffer object.");
+
+    blobdata input = std::string(Buffer::Data(target), Buffer::Length(target));
+    blobdata child_input = std::string(Buffer::Data(child_target), Buffer::Length(child_target));
+    blobdata output = "";
+
+    //convert
+    block b = AUTO_VAL_INIT(b);
+    b.set_blob_type(BLOB_TYPE_CRYPTONOTE);
+    if (!parse_and_validate_block_from_blob(input, b)) return THROW_ERROR_EXCEPTION("Failed to parse block");
+
+    block b2 = AUTO_VAL_INIT(b2);
+    b.set_blob_type(BLOB_TYPE_FORKNOTE2);
+    if (!parse_and_validate_block_from_blob(child_input, b2)) return THROW_ERROR_EXCEPTION("Failed to parse child block");
+
+
+    
+    if (!fillExtra(b, b2)) {
+        return THROW_ERROR_EXCEPTION("Failed to add merged mining tag to parent block extra (convert_blob)");
+    }
+    if (!get_block_hashing_blob(b, output)) return THROW_ERROR_EXCEPTION("Failed to create mining block");
+
+    v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
+    info.GetReturnValue().Set(returnValue);
+}
+
+
 NAN_MODULE_INIT(init) {
     Nan::Set(target, Nan::New("construct_block_blob").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(construct_block_blob)).ToLocalChecked());
     Nan::Set(target, Nan::New("get_block_id").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(get_block_id)).ToLocalChecked());
@@ -370,6 +403,7 @@ NAN_MODULE_INIT(init) {
 
     Nan::Set(target, Nan::New("merge_blocks").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(merge_blocks)).ToLocalChecked());
     Nan::Set(target, Nan::New("get_merge_mining_tag_reserved_size").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(get_merge_mining_tag_reserved_size)).ToLocalChecked());
+    Nan::Set(target, Nan::New("fill_extra").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(fill_extra)).ToLocalChecked());
 }
 
 NODE_MODULE(cryptoforknote, init)
