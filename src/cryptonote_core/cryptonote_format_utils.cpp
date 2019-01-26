@@ -370,7 +370,7 @@ namespace cryptonote
   bool get_transaction_hash(const transaction& t, crypto::hash& res, size_t* blob_size)
   {
     // v1 transactions hash the entire blob
-    if (t.version == 1 && t.blob_type != BLOB_TYPE_CRYPTONOTE2)
+    if (t.version == 1 && t.blob_type != BLOB_TYPE_CRYPTONOTE2 && t.blob_type != BLOB_TYPE_CRYPTONOTE3)
     {
       size_t ignored_blob_size, &blob_size_ref = blob_size ? *blob_size : ignored_blob_size;
       return get_object_hash(t, res, blob_size_ref);

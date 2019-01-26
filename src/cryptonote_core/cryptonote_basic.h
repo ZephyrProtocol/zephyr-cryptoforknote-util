@@ -185,7 +185,7 @@ namespace cryptonote
     BEGIN_SERIALIZE_OBJECT()
       FIELDS(*static_cast<transaction_prefix *>(this))
 
-      if (version == 1 && blob_type != BLOB_TYPE_CRYPTONOTE2)
+      if (version == 1 && blob_type != BLOB_TYPE_CRYPTONOTE2 && blob_type != BLOB_TYPE_CRYPTONOTE3)
       {
         ar.tag("signatures");
         ar.begin_array();
