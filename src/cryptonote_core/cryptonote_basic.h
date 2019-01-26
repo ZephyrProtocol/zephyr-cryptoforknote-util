@@ -398,6 +398,7 @@ namespace cryptonote
 
     transaction miner_tx;
     std::vector<crypto::hash> tx_hashes;
+    mutable crypto::hash uncle = cryptonote::null_hash;
 
     void set_blob_type(enum BLOB_TYPE bt) { miner_tx.blob_type = blob_type = bt; }
 
@@ -410,6 +411,10 @@ namespace cryptonote
       }
       FIELD(miner_tx)
       FIELD(tx_hashes)
+      if (blob_type == BLOB_TYPE_CRYPTONOTE3)
+      {
+        FIELD(uncle)
+      }
     END_SERIALIZE()
   };
 

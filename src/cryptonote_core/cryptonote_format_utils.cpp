@@ -433,7 +433,9 @@ namespace cryptonote
     crypto::hash tree_root_hash = get_tx_tree_hash(b);
     blob.append(reinterpret_cast<const char*>(&tree_root_hash), sizeof(tree_root_hash));
     blob.append(tools::get_varint_data(b.tx_hashes.size()+1));
-
+    if (b.blob_type == BLOB_TYPE_CRYPTONOTE3) {
+      blob.append(reinterpret_cast<const char*>(&b.uncle), sizeof(b.uncle));
+    }
     return true;
   }
   //---------------------------------------------------------------
