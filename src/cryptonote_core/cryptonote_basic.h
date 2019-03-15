@@ -137,6 +137,15 @@ namespace cryptonote
     END_SERIALIZE()
   };
 
+  enum loki_version
+  {
+    loki_version_0 = 0,
+    loki_version_1,
+    loki_version_2,
+    loki_version_3_per_output_unlock_times,
+    loki_version_4_tx_types,
+  };
+
   class transaction_prefix
   {
 
@@ -151,20 +160,45 @@ namespace cryptonote
     //extra
     std::vector<uint8_t> extra;
 
+    //
+    // NOTE: Loki specific
+    //
     std::vector<uint64_t> output_unlock_times;
-    bool is_deregister;
+    enum loki_type_t
+    {
+      loki_type_standard,
+      loki_type_deregister,
+      loki_type_key_image_unlock,
+      loki_type_count,
+    };
+
+    union
+    {
+      bool is_deregister;
+      uint16_t type;
+    };
 
     BEGIN_SERIALIZE()
       VARINT_FIELD(version)
-      if (blob_type == BLOB_TYPE_CRYPTONOTE_LOKI)
+      if (version > loki_version_2 && blob_type == BLOB_TYPE_CRYPTONOTE_LOKI)
       {
         FIELD(output_unlock_times)
-        FIELD(is_deregister)
+        if (version == loki_version_3_per_output_unlock_times)
+          FIELD(is_deregister)
       }
       VARINT_FIELD(unlock_time)
       FIELD(vin)
       FIELD(vout)
+      if (blob_type == BLOB_TYPE_CRYPTONOTE_LOKI)
+      {
+        if (version >= loki_version_3_per_output_unlock_times && vout.size() != output_unlock_times.size()) return false;
+      }
       FIELD(extra)
+      if (blob_type == BLOB_TYPE_CRYPTONOTE_LOKI && version >= loki_version_4_tx_types)
+      {
+        VARINT_FIELD(type)
+        if (static_cast<uint16_t>(type) >= loki_type_count) return false;
+      }
     END_SERIALIZE()
 
 
