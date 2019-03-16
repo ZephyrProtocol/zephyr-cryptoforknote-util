@@ -38,7 +38,7 @@ blobdata uint64be_to_blob(uint64_t num) {
 }
 
 
-/*                                    
+                             
 static bool fillExtra(cryptonote::block& block1, const cryptonote::block& block2) {
     cryptonote::tx_extra_merge_mining_tag mm_tag;
     mm_tag.depth = 0;
@@ -49,62 +49,51 @@ static bool fillExtra(cryptonote::block& block1, const cryptonote::block& block2
 
     return true;
 }
-*/
 
 
-static bool fillExtra(cryptonote::block& block1, const cryptonote::block& block2)
+static bool fillExtraMM(cryptonote::block& block1, const cryptonote::block& block2)
 {
     if (block2.timestamp > block1.timestamp) { // get the most recent timestamp (solve duplicated timestamps on child coin)
         block1.timestamp = block2.timestamp;
     }
     
-    if (BLOB_TYPE_CRYPTONOTE == block2.blob_type) { // Insert merged mining tag and block header hash into the miner extra
-        size_t MERGE_MINING_TAG_RESERVED_SIZE_EX = MERGE_MINING_TAG_RESERVED_SIZE + POOL_NONCE_SIZE;
-        std::vector<uint8_t>& extra = block1.miner_tx.extra;
-        std::string extraAsString(reinterpret_cast<const char*>(extra.data()), extra.size());
+    size_t MERGE_MINING_TAG_RESERVED_SIZE_EX = MERGE_MINING_TAG_RESERVED_SIZE + POOL_NONCE_SIZE;
+    std::vector<uint8_t>& extra = block1.miner_tx.extra;
+    std::string extraAsString(reinterpret_cast<const char*>(extra.data()), extra.size());
 
-        std::string extraNonceTemplate;
-        extraNonceTemplate.push_back(TX_EXTRA_NONCE);
-        extraNonceTemplate.push_back(MERGE_MINING_TAG_RESERVED_SIZE_EX);
-        extraNonceTemplate.append(MERGE_MINING_TAG_RESERVED_SIZE, '\0');
+    std::string extraNonceTemplate;
+    extraNonceTemplate.push_back(TX_EXTRA_NONCE);
+    extraNonceTemplate.push_back(MERGE_MINING_TAG_RESERVED_SIZE_EX);
+    extraNonceTemplate.append(MERGE_MINING_TAG_RESERVED_SIZE, '\0');
 
-        size_t extraNoncePos = extraAsString.find(extraNonceTemplate);
-        if (std::string::npos == extraNoncePos) {
-            return false;
-        }
-
-        cryptonote::tx_extra_merge_mining_tag tag;
-        tag.depth = 0;
-        if (!cryptonote::get_block_header_hash(block2, tag.merkle_root)) {
+    size_t extraNoncePos = extraAsString.find(extraNonceTemplate);
+    if (std::string::npos == extraNoncePos) {
         return false;
-        }
+    }
 
-
-        std::vector<uint8_t> extraNonceReplacement;
-        if (!cryptonote::append_mm_tag_to_extra(extraNonceReplacement, tag)) {
+    cryptonote::tx_extra_merge_mining_tag tag;
+    tag.depth = 0;
+    if (!cryptonote::get_block_header_hash(block2, tag.merkle_root)) {
         return false;
-        }
+    }
 
-        if (MERGE_MINING_TAG_RESERVED_SIZE < extraNonceReplacement.size()) {
+    std::vector<uint8_t> extraNonceReplacement;
+    if (!cryptonote::append_mm_tag_to_extra(extraNonceReplacement, tag)) {
         return false;
-        }
+    }
 
-        size_t diff = (extraNonceTemplate.size() + POOL_NONCE_SIZE) - extraNonceReplacement.size();
-        if (0 < diff) {
-            extraNonceReplacement.push_back(TX_EXTRA_NONCE);
-            extraNonceReplacement.push_back(static_cast<uint8_t>(diff - 2));
-        }
+    if (MERGE_MINING_TAG_RESERVED_SIZE < extraNonceReplacement.size()) {
+        return false;
+    }
 
-        std::copy(extraNonceReplacement.begin(), extraNonceReplacement.end(), extra.begin() + extraNoncePos);
+    size_t diff = (extraNonceTemplate.size() + POOL_NONCE_SIZE) - extraNonceReplacement.size();
+    if (0 < diff) {
+        extraNonceReplacement.push_back(TX_EXTRA_NONCE);
+        extraNonceReplacement.push_back(static_cast<uint8_t>(diff - 2));
+    }
 
-    } else {
-        cryptonote::tx_extra_merge_mining_tag mm_tag;
-        mm_tag.depth = 0;
-        if (!cryptonote::get_block_header_hash(block2, mm_tag.merkle_root)) return false;
+    std::copy(extraNonceReplacement.begin(), extraNonceReplacement.end(), extra.begin() + extraNoncePos);
 
-        block1.miner_tx.extra.clear();
-        if (!cryptonote::append_mm_tag_to_extra(block1.miner_tx.extra, mm_tag)) return false;
-    } 
     return true;
 }
 
@@ -174,7 +163,7 @@ NAN_METHOD(convert_blob) {
     if (!parse_and_validate_block_from_blob(input, b)) return THROW_ERROR_EXCEPTION("Failed to parse block");
 
     block b2 = AUTO_VAL_INIT(b2);
-    if (info.Length() > 2) { // MM
+    if (info.Length() > 2 && !info[2]->IsNumber()) { // MM
         b2.set_blob_type(BLOB_TYPE_FORKNOTE2); // Only forknote 2 blob types support being mm as child coin
         Local<Object> child_target = info[2]->ToObject();
         blobdata child_input = std::string(Buffer::Data(child_target), Buffer::Length(child_target));
@@ -188,9 +177,9 @@ NAN_METHOD(convert_blob) {
         if (!construct_parent_block(b, parent_block)) return THROW_ERROR_EXCEPTION("convert_blob: Failed to construct parent block");
         if (!get_block_hashing_blob(parent_block, output)) return THROW_ERROR_EXCEPTION("convert_blob: Failed to create mining block");
     } else {
-        if (BLOB_TYPE_CRYPTONOTE == blob_type && info.Length() > 2) { // MM
-            if (!fillExtra(b, b2)) {
-                return THROW_ERROR_EXCEPTION("convert_blob: Failed to add merged mining tag to parent block extra (convert_blob)");
+        if (BLOB_TYPE_CRYPTONOTE == blob_type && info.Length() > 2 && !info[2]->IsNumber()) { // MM
+            if (!fillExtraMM(b, b2)) {
+                return THROW_ERROR_EXCEPTION("convert_blob: Failed to add merged mining tag to parent block extra");
             }
         }
         if (!get_block_hashing_blob(b, output)) return THROW_ERROR_EXCEPTION("convert_blob: Failed to create mining block");
@@ -260,7 +249,7 @@ NAN_METHOD(construct_block_blob) {
     if (!parse_and_validate_block_from_blob(block_template_blob, b)) return THROW_ERROR_EXCEPTION("Failed to parse block");
 
     block b2 = AUTO_VAL_INIT(b2);
-    if (info.Length() > 3) { // MM
+    if (info.Length() > 3 && !info[3]->IsNumber()) { // MM
         b2.set_blob_type(BLOB_TYPE_FORKNOTE2); // Only forknote 2 blob types support being mm as child coin
         Local<Object> child_target = info[3]->ToObject();
         blobdata child_input = std::string(Buffer::Data(child_target), Buffer::Length(child_target));
@@ -275,8 +264,8 @@ NAN_METHOD(construct_block_blob) {
         if (POW_TYPE_NOT_SET != pow_type) b.minor_version = pow_type;
         if (!construct_parent_block(b, parent_block)) return THROW_ERROR_EXCEPTION("Failed to construct parent block");
         if (!mergeBlocks(parent_block, b, std::vector<crypto::hash>())) return THROW_ERROR_EXCEPTION("Failed to postprocess mining block");
-    } else if (BLOB_TYPE_CRYPTONOTE == blob_type && info.Length() > 3) { // MM
-            if (!fillExtra(b, b2)) {
+    } else if (BLOB_TYPE_CRYPTONOTE == blob_type && info.Length() > 3 && !info[3]->IsNumber()) { // MM
+            if (!fillExtraMM(b, b2)) {
                 return THROW_ERROR_EXCEPTION("Failed to add merged mining tag to parent block extra");
             }
         }
@@ -420,7 +409,7 @@ NAN_METHOD(fill_extra) {
 
 
     
-    if (!fillExtra(b, b2)) {
+    if (!fillExtraMM(b, b2)) {
         return THROW_ERROR_EXCEPTION("Failed to add merged mining tag to parent block extra (convert_blob)");
     }
     if (!get_block_hashing_blob(b, output)) return THROW_ERROR_EXCEPTION("Failed to create mining block");
