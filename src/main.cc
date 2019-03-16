@@ -134,7 +134,9 @@ NAN_METHOD(get_merge_mining_tag_reserved_size) {
     info.GetReturnValue().Set(returnValue);
 }
 
-
+/*
+ * var blob = convert_blob (parentBlockBuffer, cnBlobType, [childBlockBuffer], [PoW])
+ */
 NAN_METHOD(convert_blob) {
     if (info.Length() < 1) return THROW_ERROR_EXCEPTION("You must provide one argument.");
 
@@ -148,6 +150,12 @@ NAN_METHOD(convert_blob) {
     if (info.Length() >= 2) {
         if (!info[1]->IsNumber()) return THROW_ERROR_EXCEPTION("Argument 2 should be a number");
         blob_type = static_cast<enum BLOB_TYPE>(Nan::To<int>(info[1]).FromMaybe(0));
+    }
+
+    enum POW_TYPE pow_type = POW_TYPE_NOT_SET;
+    if (info.Length() >= 4) {
+        if (!info[1]->IsNumber()) return THROW_ERROR_EXCEPTION("Argument 4 should be a number");
+        pow_type = static_cast<enum POW_TYPE>(Nan::To<int>(info[3]).FromMaybe(0));
     }
 
     //convert
@@ -166,6 +174,7 @@ NAN_METHOD(convert_blob) {
 
     if (blob_type == BLOB_TYPE_FORKNOTE2) {
         block parent_block;
+        if (POW_TYPE_NOT_SET != pow_type) b.minor_version = pow_type;
         if (!construct_parent_block(b, parent_block)) return THROW_ERROR_EXCEPTION("Failed to construct parent block");
         if (!get_block_hashing_blob(parent_block, output)) return THROW_ERROR_EXCEPTION("Failed to create mining block");
     } else {
@@ -208,6 +217,9 @@ NAN_METHOD(get_block_id) {
     info.GetReturnValue().Set(returnValue);
 }
 
+/*
+ * var shareBuffer = construct_block_blob(parentBlockTemplateBuffer, nonceBuffer, cnBlobType, [childBlockTemplateBuffer], [PoW]);
+ */
 NAN_METHOD(construct_block_blob) {
     if (info.Length() < 2) return THROW_ERROR_EXCEPTION("You must provide two arguments.");
 
@@ -227,6 +239,12 @@ NAN_METHOD(construct_block_blob) {
         blob_type = static_cast<enum BLOB_TYPE>(Nan::To<int>(info[2]).FromMaybe(0));
     }
 
+    enum POW_TYPE pow_type = POW_TYPE_NOT_SET;
+    if (info.Length() >= 5) {
+        if (!info[1]->IsNumber()) return THROW_ERROR_EXCEPTION("Argument 5 should be a number");
+        pow_type = static_cast<enum POW_TYPE>(Nan::To<int>(info[4]).FromMaybe(0));
+    }
+
     block b = AUTO_VAL_INIT(b);
     b.set_blob_type(blob_type);
     if (!parse_and_validate_block_from_blob(block_template_blob, b)) return THROW_ERROR_EXCEPTION("Failed to parse block");
@@ -244,6 +262,7 @@ NAN_METHOD(construct_block_blob) {
     if (blob_type == BLOB_TYPE_FORKNOTE2) {
         block parent_block;
         b.parent_block.nonce = nonce;
+        if (POW_TYPE_NOT_SET != pow_type) b.minor_version = pow_type;
         if (!construct_parent_block(b, parent_block)) return THROW_ERROR_EXCEPTION("Failed to construct parent block");
         if (!mergeBlocks(parent_block, b, std::vector<crypto::hash>())) return THROW_ERROR_EXCEPTION("Failed to postprocess mining block");
     } else if (BLOB_TYPE_CRYPTONOTE == blob_type && info.Length() > 3) { // MM
@@ -321,7 +340,7 @@ NAN_METHOD(address_decode_integrated) {
 
 
 /**
- * var mmShareBuffer = merge_blocks(shareBuffer, childBlockTemplate);
+ * var mmShareBuffer = merge_blocks(shareBuffer, childBlockTemplate, [PoW] );
  */
 NAN_METHOD(merge_blocks) {
 
@@ -337,6 +356,12 @@ NAN_METHOD(merge_blocks) {
     if (!Buffer::HasInstance(child_block_template_buf))
         return THROW_ERROR_EXCEPTION("Second argument should be a buffer object.");
 
+    enum POW_TYPE pow_type = POW_TYPE_NOT_SET;
+    if (info.Length() >= 3) {
+        if (!info[1]->IsNumber()) return THROW_ERROR_EXCEPTION("Argument 3 should be a number");
+        pow_type = static_cast<enum POW_TYPE>(Nan::To<int>(info[2]).FromMaybe(0));
+    }
+
     blobdata block_template_blob = std::string(Buffer::Data(block_template_buf), Buffer::Length(block_template_buf));
     blobdata child_block_template_blob = std::string(Buffer::Data(child_block_template_buf), Buffer::Length(child_block_template_buf));
     blobdata output = "";
@@ -351,7 +376,8 @@ NAN_METHOD(merge_blocks) {
 
     if (!mergeBlocks(b, b2, std::vector<crypto::hash>()))
             return THROW_ERROR_EXCEPTION("mergeBlocks(b,b2): Failed to postprocess mining block");
-
+    if (POW_TYPE_NOT_SET != pow_type) b2.minor_version = pow_type;
+    
     if (!block_to_blob(b2, output)) {
         return THROW_ERROR_EXCEPTION("Failed to convert block to blob (merge_blocks)");
     }
