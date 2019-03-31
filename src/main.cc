@@ -17,6 +17,10 @@ using namespace node;
 using namespace v8;
 using namespace cryptonote;
 
+// cryptonote::append_mm_tag_to_extra writes byte with TX_EXTRA_MERGE_MINING_TAG
+// 2 bytes after are TX_EXTRA_NONCE and extra nonce size used by pool
+const size_t MM_NONCE_SIZE = 1 + sizeof(crypto::hash) + 2;
+
 blobdata uint64be_to_blob(uint64_t num) {
     blobdata res = "        ";
     res[0] = num >> 56 & 0xff;
@@ -29,7 +33,7 @@ blobdata uint64be_to_blob(uint64_t num) {
     res[7] = num       & 0xff;
     return res;
 }
-                                    
+                             
 static bool fillExtra(cryptonote::block& block1, const cryptonote::block& block2) {
     cryptonote::tx_extra_merge_mining_tag mm_tag;
     mm_tag.depth = 0;
@@ -41,13 +45,25 @@ static bool fillExtra(cryptonote::block& block1, const cryptonote::block& block2
     return true;
 }
 
+static bool fillExtraMM(cryptonote::block& block1, const cryptonote::block& block2) {
+    std::vector<uint8_t>& extra_nonce = block1.miner_tx.extra;
+    if (extra_nonce.size() < MM_NONCE_SIZE) return false;
+    if (!fillExtra(block1, block2)) return false;
+
+    extra_nonce[MM_NONCE_SIZE-2] = TX_EXTRA_NONCE;
+    extra_nonce[MM_NONCE_SIZE-1] = extra_nonce.size() - MM_NONCE_SIZE;
+
+    if (block2.timestamp > block1.timestamp) block1.timestamp = block2.timestamp;
+    return true;
+}
+
 static bool mergeBlocks(const cryptonote::block& block1, cryptonote::block& block2, const std::vector<crypto::hash>& branch2) {
     block2.timestamp = block1.timestamp;
     block2.parent_block.major_version = block1.major_version;
     block2.parent_block.minor_version = block1.minor_version;
-    block2.parent_block.prev_id = block1.prev_id;
-    block2.parent_block.nonce = block1.nonce;
-    block2.parent_block.miner_tx = block1.miner_tx;
+    block2.parent_block.prev_id       = block1.prev_id;
+    block2.parent_block.nonce         = block1.nonce;
+    block2.parent_block.miner_tx      = block1.miner_tx;
     block2.parent_block.number_of_transactions = block1.tx_hashes.size() + 1;
     block2.parent_block.miner_tx_branch.resize(crypto::tree_depth(block1.tx_hashes.size() + 1));
     std::vector<crypto::hash> transactionHashes;
@@ -66,11 +82,10 @@ static bool construct_parent_block(const cryptonote::block& b, cryptonote::block
     parent_block.nonce = b.parent_block.nonce;
     parent_block.miner_tx.version = CURRENT_TRANSACTION_VERSION;
     parent_block.miner_tx.unlock_time = 0;
-
     return fillExtra(parent_block, b);
 }
 
-NAN_METHOD(convert_blob) {
+NAN_METHOD(convert_blob) { // (parentBlockBuffer, cnBlobType)
     if (info.Length() < 1) return THROW_ERROR_EXCEPTION("You must provide one argument.");
 
     Local<Object> target = info[0]->ToObject();
@@ -85,17 +100,16 @@ NAN_METHOD(convert_blob) {
         blob_type = static_cast<enum BLOB_TYPE>(Nan::To<int>(info[1]).FromMaybe(0));
     }
 
-    //convert
     block b = AUTO_VAL_INIT(b);
     b.set_blob_type(blob_type);
     if (!parse_and_validate_block_from_blob(input, b)) return THROW_ERROR_EXCEPTION("Failed to parse block");
 
     if (blob_type == BLOB_TYPE_FORKNOTE2) {
         block parent_block;
-        if (!construct_parent_block(b, parent_block)) return THROW_ERROR_EXCEPTION("Failed to construct parent block");
-        if (!get_block_hashing_blob(parent_block, output)) return THROW_ERROR_EXCEPTION("Failed to create mining block");
+        if (!construct_parent_block(b, parent_block)) return THROW_ERROR_EXCEPTION("convert_blob: Failed to construct parent block");
+        if (!get_block_hashing_blob(parent_block, output)) return THROW_ERROR_EXCEPTION("convert_blob: Failed to create mining block");
     } else {
-        if (!get_block_hashing_blob(b, output)) return THROW_ERROR_EXCEPTION("Failed to create mining block");
+        if (!get_block_hashing_blob(b, output)) return THROW_ERROR_EXCEPTION("convert_blob: Failed to create mining block");
     }
 
     v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
@@ -129,7 +143,7 @@ NAN_METHOD(get_block_id) {
     info.GetReturnValue().Set(returnValue);
 }
 
-NAN_METHOD(construct_block_blob) {
+NAN_METHOD(construct_block_blob) { // (parentBlockTemplateBuffer, nonceBuffer, cnBlobType)
     if (info.Length() < 2) return THROW_ERROR_EXCEPTION("You must provide two arguments.");
 
     Local<Object> block_template_buf = info[0]->ToObject();
@@ -165,7 +179,6 @@ NAN_METHOD(construct_block_blob) {
     v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
     info.GetReturnValue().Set(returnValue);
 }
-
 
 NAN_METHOD(address_decode) {
     if (info.Length() < 1) return THROW_ERROR_EXCEPTION("You must provide one argument.");
@@ -227,12 +240,85 @@ NAN_METHOD(address_decode_integrated) {
     }
 }
 
+NAN_METHOD(get_merged_mining_nonce_size) {
+    Local<Integer> returnValue = Nan::New(static_cast<uint32_t>(MM_NONCE_SIZE));
+    info.GetReturnValue().Set(returnValue);
+}
+
+NAN_METHOD(contruct_mm_child_block_blob) { // (shareBuffer, blob_type, childBlockTemplate)
+    if (info.Length() < 3) return THROW_ERROR_EXCEPTION("You must provide three arguments (shareBuffer, blob_type, block2).");
+
+    Local<Object> block_template_buf       = info[0]->ToObject();
+    Local<Object> child_block_template_buf = info[2]->ToObject();
+
+    if (!Buffer::HasInstance(block_template_buf)) return THROW_ERROR_EXCEPTION("First argument should be a buffer object.");
+    if (!info[1]->IsNumber()) return THROW_ERROR_EXCEPTION("Second argument should be a number");
+    if (!Buffer::HasInstance(child_block_template_buf)) return THROW_ERROR_EXCEPTION("Third argument should be a buffer object.");
+
+    const enum BLOB_TYPE blob_type = static_cast<enum BLOB_TYPE>(Nan::To<int>(info[1]).FromMaybe(0));
+
+    blobdata block_template_blob = std::string(Buffer::Data(block_template_buf), Buffer::Length(block_template_buf));
+    blobdata child_block_template_blob = std::string(Buffer::Data(child_block_template_buf), Buffer::Length(child_block_template_buf));
+    blobdata output = "";
+
+    block b = AUTO_VAL_INIT(b);
+    b.set_blob_type(blob_type);
+    if (!parse_and_validate_block_from_blob(block_template_blob, b)) return THROW_ERROR_EXCEPTION("contruct_mm_child_block_blob: Failed to parse parent block");
+
+    block b2 = AUTO_VAL_INIT(b2);
+    b2.set_blob_type(BLOB_TYPE_FORKNOTE2);
+    if (!parse_and_validate_block_from_blob(child_block_template_blob, b2)) return THROW_ERROR_EXCEPTION("contruct_mm_child_block_blob: Failed to parse child block");
+
+    if (!mergeBlocks(b, b2, std::vector<crypto::hash>())) return THROW_ERROR_EXCEPTION("contruct_mm_child_block_blob: Failed to postprocess mining block");
+    
+    if (!block_to_blob(b2, output)) return THROW_ERROR_EXCEPTION("contruct_mm_child_block_blob: Failed to convert child block to blob");
+
+    v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
+    info.GetReturnValue().Set(returnValue);
+}
+
+NAN_METHOD(contruct_mm_parent_block_blob) { // (shareBuffer, blob_type, childBlockTemplate)
+    if (info.Length() < 3) return THROW_ERROR_EXCEPTION("You must provide three arguments (parentBlock, blob_type, childBlock).");
+
+    Local<Object> target       = info[0]->ToObject();
+    Local<Object> child_target = info[2]->ToObject();
+
+    if (!Buffer::HasInstance(target)) return THROW_ERROR_EXCEPTION("First argument should be a buffer object.");
+    if (!info[1]->IsNumber()) return THROW_ERROR_EXCEPTION("Second argument should be a number");
+    if (!Buffer::HasInstance(child_target)) return THROW_ERROR_EXCEPTION("Third argument should be a buffer object.");
+
+    const enum BLOB_TYPE blob_type = static_cast<enum BLOB_TYPE>(Nan::To<int>(info[1]).FromMaybe(0));
+
+    blobdata input       = std::string(Buffer::Data(target), Buffer::Length(target));
+    blobdata child_input = std::string(Buffer::Data(child_target), Buffer::Length(child_target));
+
+    block b = AUTO_VAL_INIT(b);
+    b.set_blob_type(blob_type);
+    if (!parse_and_validate_block_from_blob(input, b)) return THROW_ERROR_EXCEPTION("contruct_mm_parent_block_blob: Failed to parse prent block");
+
+    block b2 = AUTO_VAL_INIT(b2);
+    b2.set_blob_type(BLOB_TYPE_FORKNOTE2);
+    if (!parse_and_validate_block_from_blob(child_input, b2)) return THROW_ERROR_EXCEPTION("contruct_mm_parent_block_blob: Failed to parse child block");
+
+    if (!fillExtraMM(b, b2)) return THROW_ERROR_EXCEPTION("contruct_mm_parent_block_blob: Failed to add merged mining tag to parent block extra");
+
+    blobdata output = "";
+    if (!block_to_blob(b, output)) return THROW_ERROR_EXCEPTION("contruct_mm_parent_block_blob: Failed to convert parent block to blob");
+
+    v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
+    info.GetReturnValue().Set(returnValue);
+}
+
 NAN_MODULE_INIT(init) {
     Nan::Set(target, Nan::New("construct_block_blob").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(construct_block_blob)).ToLocalChecked());
     Nan::Set(target, Nan::New("get_block_id").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(get_block_id)).ToLocalChecked());
     Nan::Set(target, Nan::New("convert_blob").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(convert_blob)).ToLocalChecked());
     Nan::Set(target, Nan::New("address_decode").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(address_decode)).ToLocalChecked());
     Nan::Set(target, Nan::New("address_decode_integrated").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(address_decode_integrated)).ToLocalChecked());
+
+    Nan::Set(target, Nan::New("contruct_mm_child_block_blob").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(contruct_mm_child_block_blob)).ToLocalChecked());
+    Nan::Set(target, Nan::New("get_merged_mining_nonce_size").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(get_merged_mining_nonce_size)).ToLocalChecked());
+    Nan::Set(target, Nan::New("contruct_mm_parent_block_blob").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(contruct_mm_parent_block_blob)).ToLocalChecked());
 }
 
 NODE_MODULE(cryptoforknote, init)

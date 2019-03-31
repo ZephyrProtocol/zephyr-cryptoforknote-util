@@ -1,5 +1,5 @@
-Node-CryptoForkNote-Util
-====================
+Node-CryptoForkNote-Util with Merged Mining support
+===================================================
 
 Dependencies
 ------------
