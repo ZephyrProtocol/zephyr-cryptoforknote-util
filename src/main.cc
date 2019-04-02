@@ -277,7 +277,7 @@ NAN_METHOD(construct_mm_child_block_blob) { // (shareBuffer, blob_type, childBlo
     info.GetReturnValue().Set(returnValue);
 }
 
-NAN_METHOD(construct_mm_parent_block_blob) { // (shareBuffer, blob_type, childBlockTemplate)
+NAN_METHOD(construct_mm_parent_block_extra_nonce) { // (parentBlockTemplate, blob_type, childBlockTemplate)
     if (info.Length() < 3) return THROW_ERROR_EXCEPTION("You must provide three arguments (parentBlock, blob_type, childBlock).");
 
     Local<Object> target       = info[0]->ToObject();
@@ -294,18 +294,15 @@ NAN_METHOD(construct_mm_parent_block_blob) { // (shareBuffer, blob_type, childBl
 
     block b = AUTO_VAL_INIT(b);
     b.set_blob_type(blob_type);
-    if (!parse_and_validate_block_from_blob(input, b)) return THROW_ERROR_EXCEPTION("construct_mm_parent_block_blob: Failed to parse prent block");
+    if (!parse_and_validate_block_from_blob(input, b)) return THROW_ERROR_EXCEPTION("construct_mm_parent_block_extra_nonce: Failed to parse prent block");
 
     block b2 = AUTO_VAL_INIT(b2);
     b2.set_blob_type(BLOB_TYPE_FORKNOTE2);
-    if (!parse_and_validate_block_from_blob(child_input, b2)) return THROW_ERROR_EXCEPTION("construct_mm_parent_block_blob: Failed to parse child block");
+    if (!parse_and_validate_block_from_blob(child_input, b2)) return THROW_ERROR_EXCEPTION("construct_mm_parent_block_extra_nonce: Failed to parse child block");
 
-    if (!fillExtraMM(b, b2)) return THROW_ERROR_EXCEPTION("construct_mm_parent_block_blob: Failed to add merged mining tag to parent block extra");
+    if (!fillExtraMM(b, b2)) return THROW_ERROR_EXCEPTION("construct_mm_parent_block_extra_nonce: Failed to add merged mining tag to parent block extra");
 
-    blobdata output = "";
-    if (!block_to_blob(b, output)) return THROW_ERROR_EXCEPTION("construct_mm_parent_block_blob: Failed to convert parent block to blob");
-
-    v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
+    v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)&b.miner_tx.extra[0], b.miner_tx.extra.size()).ToLocalChecked();
     info.GetReturnValue().Set(returnValue);
 }
 
@@ -318,7 +315,7 @@ NAN_MODULE_INIT(init) {
 
     Nan::Set(target, Nan::New("get_merged_mining_nonce_size").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(get_merged_mining_nonce_size)).ToLocalChecked());
     Nan::Set(target, Nan::New("construct_mm_child_block_blob").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(construct_mm_child_block_blob)).ToLocalChecked());
-    Nan::Set(target, Nan::New("construct_mm_parent_block_blob").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(construct_mm_parent_block_blob)).ToLocalChecked());
+    Nan::Set(target, Nan::New("construct_mm_parent_block_extra_nonce").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(construct_mm_parent_block_extra_nonce)).ToLocalChecked());
 }
 
 NODE_MODULE(cryptoforknote, init)
