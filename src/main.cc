@@ -70,7 +70,7 @@ static bool fillExtraMM(cryptonote::block& block1, const cryptonote::block& bloc
        switch (extra[pos]) {
            case TX_EXTRA_TAG_PUBKEY: pos += 1 + sizeof(crypto::public_key); break;
            default: {
-               fprintf(stderr, "Wrong extra tag found: %x\n", extra[pos]);
+               fprintf(stderr, "Not supported extra tag found: %x\n", extra[pos]);
                return false;
            }
        }
@@ -85,7 +85,7 @@ static bool fillExtraMM(cryptonote::block& block1, const cryptonote::block& bloc
     const int new_extra_nonce_size = extra_nonce_size - MM_NONCE_SIZE;
 
     if (new_extra_nonce_size < 0) {
-        fprintf(stderr, "Too small extra size\n");
+        fprintf(stderr, "Too small extra size, can't fit MM tag here\n");
         return false;
     }
 
