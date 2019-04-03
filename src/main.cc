@@ -91,6 +91,7 @@ static bool fillExtraMM(cryptonote::block& block1, const cryptonote::block& bloc
 
     extra[pos + 1] = new_extra_nonce_size;
     std::copy(extra_nonce_replace.begin(), extra_nonce_replace.end(), extra.begin() + pos + 1 + new_extra_nonce_size + 1);
+    extra.resize(pos + 1 + new_extra_nonce_size + 1 + MM_NONCE_SIZE);
 
     return true;
 }
