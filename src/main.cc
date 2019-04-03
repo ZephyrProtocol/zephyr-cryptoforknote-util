@@ -91,7 +91,7 @@ static bool fillExtraMM(cryptonote::block& block1, const cryptonote::block& bloc
 
     extra[pos + 1] = new_extra_nonce_size;
     std::copy(extra_nonce_replace.begin(), extra_nonce_replace.end(), extra.begin() + pos + 1 + new_extra_nonce_size + 1);
-    extra.resize(pos + 1 + new_extra_nonce_size + 1 + MM_NONCE_SIZE);
+    //extra.resize(pos + 1 + extra_nonce_size + 1);
 
     return true;
 }
@@ -299,7 +299,7 @@ NAN_METHOD(construct_mm_child_block_blob) { // (shareBuffer, blob_type, childBlo
     blobdata block_template_blob = std::string(Buffer::Data(block_template_buf), Buffer::Length(block_template_buf));
     blobdata child_block_template_blob = std::string(Buffer::Data(child_block_template_buf), Buffer::Length(child_block_template_buf));
 
-    block b = AUTO_VAL_INIT(b);
+    block b = AUTO_VAL_INIT(BLOB_TYPE_CRYPTONOTE);
     b.set_blob_type(blob_type);
     if (!parse_and_validate_block_from_blob(block_template_blob, b)) return THROW_ERROR_EXCEPTION("construct_mm_child_block_blob: Failed to parse parent block");
 
@@ -334,6 +334,7 @@ NAN_METHOD(construct_mm_parent_block_blob) { // (parentBlockTemplate, blob_type,
     block b = AUTO_VAL_INIT(b);
     b.set_blob_type(blob_type);
     if (!parse_and_validate_block_from_blob(input, b)) return THROW_ERROR_EXCEPTION("construct_mm_parent_block_blob: Failed to parse prent block");
+    b.set_blob_type(BLOB_TYPE_CRYPTONOTE);
 
     block b2 = AUTO_VAL_INIT(b2);
     b2.set_blob_type(BLOB_TYPE_FORKNOTE2);
