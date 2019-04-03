@@ -299,8 +299,8 @@ NAN_METHOD(construct_mm_child_block_blob) { // (shareBuffer, blob_type, childBlo
     blobdata block_template_blob = std::string(Buffer::Data(block_template_buf), Buffer::Length(block_template_buf));
     blobdata child_block_template_blob = std::string(Buffer::Data(child_block_template_buf), Buffer::Length(child_block_template_buf));
 
-    block b = AUTO_VAL_INIT(BLOB_TYPE_CRYPTONOTE);
-    b.set_blob_type(blob_type);
+    block b = AUTO_VAL_INIT(b);
+    b.set_blob_type(BLOB_TYPE_CRYPTONOTE);
     if (!parse_and_validate_block_from_blob(block_template_blob, b)) return THROW_ERROR_EXCEPTION("construct_mm_child_block_blob: Failed to parse parent block");
 
     block b2 = AUTO_VAL_INIT(b2);
