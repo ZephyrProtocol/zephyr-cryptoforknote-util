@@ -17,9 +17,8 @@ using namespace node;
 using namespace v8;
 using namespace cryptonote;
 
-// cryptonote::append_mm_tag_to_extra writes byte with TX_EXTRA_MERGE_MINING_TAG
-// 2 bytes after are TX_EXTRA_NONCE and extra nonce size used by pool
-const size_t MM_NONCE_SIZE = 1 + sizeof(crypto::hash) + 2;
+// cryptonote::append_mm_tag_to_extra writes byte with TX_EXTRA_MERGE_MINING_TAG (1 here) and VARINT DEPTH (2 here)
+const size_t MM_NONCE_SIZE = 1 + 2 + sizeof(crypto::hash);
 
 blobdata uint64be_to_blob(uint64_t num) {
     blobdata res = "        ";
@@ -45,15 +44,36 @@ static bool fillExtra(cryptonote::block& block1, const cryptonote::block& block2
     return true;
 }
 
+
 static bool fillExtraMM(cryptonote::block& block1, const cryptonote::block& block2) {
-    std::vector<uint8_t>& extra_nonce = block1.miner_tx.extra;
-    if (extra_nonce.size() < MM_NONCE_SIZE) return false;
-    if (!fillExtra(block1, block2)) return false;
+    cryptonote::tx_extra_merge_mining_tag mm_tag;
+    mm_tag.depth = 0;
+    if (!cryptonote::get_block_header_hash(block2, mm_tag.merkle_root)) return false;
+    std::vector<uint8_t> extra_nonce_replace;
+    if (!cryptonote::append_mm_tag_to_extra(extra_nonce_replace, mm_tag)) return false;
 
-    extra_nonce[MM_NONCE_SIZE-2] = TX_EXTRA_NONCE;
-    extra_nonce[MM_NONCE_SIZE-1] = extra_nonce.size() - MM_NONCE_SIZE;
+    if (extra_nonce_replace.size() != MM_NONCE_SIZE) return false;
 
-    if (block2.timestamp > block1.timestamp) block1.timestamp = block2.timestamp;
+    std::vector<uint8_t>& extra = block1.miner_tx.extra;
+    size_t pos = 0;
+
+    while (pos < extra.size() && extra[pos] != TX_EXTRA_NONCE) {
+       switch (extra[pos]) {
+         case TX_EXTRA_TAG_PUBKEY: pos += 1 + sizeof(crypto::public_key); break;
+         default: return false;
+       }
+    }
+
+    if (pos + 1 >= extra.size()) return false;
+
+    const int extra_nonce_size = extra[pos + 1];
+    const int new_extra_nonce_size = extra_nonce_size - MM_NONCE_SIZE;
+
+    if (new_extra_nonce_size < 0) return false;
+
+    extra[pos + 1] = new_extra_nonce_size;
+    std::copy(extra_nonce_replace.begin(), extra_nonce_replace.end(), extra.begin() + pos + 1 + new_extra_nonce_size + 1);
+
     return true;
 }
 
@@ -259,7 +279,6 @@ NAN_METHOD(construct_mm_child_block_blob) { // (shareBuffer, blob_type, childBlo
 
     blobdata block_template_blob = std::string(Buffer::Data(block_template_buf), Buffer::Length(block_template_buf));
     blobdata child_block_template_blob = std::string(Buffer::Data(child_block_template_buf), Buffer::Length(child_block_template_buf));
-    blobdata output = "";
 
     block b = AUTO_VAL_INIT(b);
     b.set_blob_type(blob_type);
@@ -271,13 +290,14 @@ NAN_METHOD(construct_mm_child_block_blob) { // (shareBuffer, blob_type, childBlo
 
     if (!mergeBlocks(b, b2, std::vector<crypto::hash>())) return THROW_ERROR_EXCEPTION("construct_mm_child_block_blob: Failed to postprocess mining block");
     
+    blobdata output = "";
     if (!block_to_blob(b2, output)) return THROW_ERROR_EXCEPTION("construct_mm_child_block_blob: Failed to convert child block to blob");
 
     v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
     info.GetReturnValue().Set(returnValue);
 }
 
-NAN_METHOD(construct_mm_parent_block_extra_nonce) { // (parentBlockTemplate, blob_type, childBlockTemplate)
+NAN_METHOD(construct_mm_parent_block_blob) { // (parentBlockTemplate, blob_type, childBlockTemplate)
     if (info.Length() < 3) return THROW_ERROR_EXCEPTION("You must provide three arguments (parentBlock, blob_type, childBlock).");
 
     Local<Object> target       = info[0]->ToObject();
@@ -294,15 +314,18 @@ NAN_METHOD(construct_mm_parent_block_extra_nonce) { // (parentBlockTemplate, blo
 
     block b = AUTO_VAL_INIT(b);
     b.set_blob_type(blob_type);
-    if (!parse_and_validate_block_from_blob(input, b)) return THROW_ERROR_EXCEPTION("construct_mm_parent_block_extra_nonce: Failed to parse prent block");
+    if (!parse_and_validate_block_from_blob(input, b)) return THROW_ERROR_EXCEPTION("construct_mm_parent_block_blob: Failed to parse prent block");
 
     block b2 = AUTO_VAL_INIT(b2);
     b2.set_blob_type(BLOB_TYPE_FORKNOTE2);
-    if (!parse_and_validate_block_from_blob(child_input, b2)) return THROW_ERROR_EXCEPTION("construct_mm_parent_block_extra_nonce: Failed to parse child block");
+    if (!parse_and_validate_block_from_blob(child_input, b2)) return THROW_ERROR_EXCEPTION("construct_mm_parent_block_blob: Failed to parse child block");
 
-    if (!fillExtraMM(b, b2)) return THROW_ERROR_EXCEPTION("construct_mm_parent_block_extra_nonce: Failed to add merged mining tag to parent block extra");
+    if (!fillExtraMM(b, b2)) return THROW_ERROR_EXCEPTION("construct_mm_parent_block_blob: Failed to add merged mining tag to parent block extra");
 
-    v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)&b.miner_tx.extra[0], b.miner_tx.extra.size()).ToLocalChecked();
+    blobdata output = "";
+    if (!block_to_blob(b, output)) return THROW_ERROR_EXCEPTION("construct_mm_parent_block_blob: Failed to convert child block to blob");
+
+    v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
     info.GetReturnValue().Set(returnValue);
 }
 
@@ -315,7 +338,7 @@ NAN_MODULE_INIT(init) {
 
     Nan::Set(target, Nan::New("get_merged_mining_nonce_size").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(get_merged_mining_nonce_size)).ToLocalChecked());
     Nan::Set(target, Nan::New("construct_mm_child_block_blob").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(construct_mm_child_block_blob)).ToLocalChecked());
-    Nan::Set(target, Nan::New("construct_mm_parent_block_extra_nonce").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(construct_mm_parent_block_extra_nonce)).ToLocalChecked());
+    Nan::Set(target, Nan::New("construct_mm_parent_block_blob").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(construct_mm_parent_block_blob)).ToLocalChecked());
 }
 
 NODE_MODULE(cryptoforknote, init)
