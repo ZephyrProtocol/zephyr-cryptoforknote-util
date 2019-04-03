@@ -48,28 +48,46 @@ static bool fillExtra(cryptonote::block& block1, const cryptonote::block& block2
 static bool fillExtraMM(cryptonote::block& block1, const cryptonote::block& block2) {
     cryptonote::tx_extra_merge_mining_tag mm_tag;
     mm_tag.depth = 0;
-    if (!cryptonote::get_block_header_hash(block2, mm_tag.merkle_root)) return false;
+    if (!cryptonote::get_block_header_hash(block2, mm_tag.merkle_root)) {
+        fprintf(stderr, "Can't get child block header hash!\n");
+        return false;
+    }
     std::vector<uint8_t> extra_nonce_replace;
-    if (!cryptonote::append_mm_tag_to_extra(extra_nonce_replace, mm_tag)) return false;
+    if (!cryptonote::append_mm_tag_to_extra(extra_nonce_replace, mm_tag)) {
+        fprintf(stderr, "Can't append mm_tag extra!\n");
+        return false;
+    }
 
-    if (extra_nonce_replace.size() != MM_NONCE_SIZE) return false;
+    if (extra_nonce_replace.size() != MM_NONCE_SIZE) {
+        fprintf(stderr, "Wrong MM_NONCE_SIZE size!\n");
+        return false;
+    }
 
     std::vector<uint8_t>& extra = block1.miner_tx.extra;
     size_t pos = 0;
 
     while (pos < extra.size() && extra[pos] != TX_EXTRA_NONCE) {
        switch (extra[pos]) {
-         case TX_EXTRA_TAG_PUBKEY: pos += 1 + sizeof(crypto::public_key); break;
-         default: return false;
+           case TX_EXTRA_TAG_PUBKEY: pos += 1 + sizeof(crypto::public_key); break;
+           default: {
+               fprintf(stderr, "Wrong extra tag found: %x\n", extra[pos]);
+               return false;
+           }
        }
     }
 
-    if (pos + 1 >= extra.size()) return false;
+    if (pos + 1 >= extra.size()) {
+        fprintf(stderr, "Can't find TX_EXTRA_NONCE in extra\n");
+        return false;
+    }
 
     const int extra_nonce_size = extra[pos + 1];
     const int new_extra_nonce_size = extra_nonce_size - MM_NONCE_SIZE;
 
-    if (new_extra_nonce_size < 0) return false;
+    if (new_extra_nonce_size < 0) {
+        fprintf(stderr, "Too small extra size\n");
+        return false;
+    }
 
     extra[pos + 1] = new_extra_nonce_size;
     std::copy(extra_nonce_replace.begin(), extra_nonce_replace.end(), extra.begin() + pos + 1 + new_extra_nonce_size + 1);
