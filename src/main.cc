@@ -165,7 +165,6 @@ NAN_METHOD(get_block_id) {
     if (!Buffer::HasInstance(target)) return THROW_ERROR_EXCEPTION("Argument should be a buffer object.");
 
     blobdata input = std::string(Buffer::Data(target), Buffer::Length(target));
-    blobdata output = "";
 
     enum BLOB_TYPE blob_type = BLOB_TYPE_CRYPTONOTE;
     if (info.Length() >= 2) {
