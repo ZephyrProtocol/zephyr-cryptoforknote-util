@@ -191,17 +191,18 @@ NAN_METHOD(construct_block_blob) { // (parentBlockTemplateBuffer, nonceBuffer, c
     Local<Object> nonce_buf = info[1]->ToObject();
 
     if (!Buffer::HasInstance(block_template_buf) || !Buffer::HasInstance(nonce_buf)) return THROW_ERROR_EXCEPTION("Both arguments should be buffer objects.");
-    if (Buffer::Length(nonce_buf) != 4) return THROW_ERROR_EXCEPTION("Nonce buffer has invalid size.");
-
-    uint32_t nonce = *reinterpret_cast<uint32_t*>(Buffer::Data(nonce_buf));
-    blobdata block_template_blob = std::string(Buffer::Data(block_template_buf), Buffer::Length(block_template_buf));
-    blobdata output = "";
 
     enum BLOB_TYPE blob_type = BLOB_TYPE_CRYPTONOTE;
     if (info.Length() >= 3) {
         if (!info[2]->IsNumber()) return THROW_ERROR_EXCEPTION("Argument 3 should be a number");
         blob_type = static_cast<enum BLOB_TYPE>(Nan::To<int>(info[2]).FromMaybe(0));
     }
+
+    if (Buffer::Length(nonce_buf) != (blob_type == BLOB_TYPE_AEON ? 8 : 4)) return THROW_ERROR_EXCEPTION("Nonce buffer has invalid size.");
+
+    uint64_t nonce = blob_type == BLOB_TYPE_AEON ? *reinterpret_cast<uint64_t*>(Buffer::Data(nonce_buf)) : *reinterpret_cast<uint32_t*>(Buffer::Data(nonce_buf));
+    blobdata block_template_blob = std::string(Buffer::Data(block_template_buf), Buffer::Length(block_template_buf));
+    blobdata output = "";
 
     block b = AUTO_VAL_INIT(b);
     b.set_blob_type(blob_type);
