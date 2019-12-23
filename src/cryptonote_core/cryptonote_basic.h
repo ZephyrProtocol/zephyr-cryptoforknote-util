@@ -430,12 +430,15 @@ namespace cryptonote
     uint64_t timestamp;
     crypto::hash prev_id;
     uint64_t nonce;
+    uint64_t nonce8;
+    crypto::cycle cycle;
 
     BEGIN_SERIALIZE()
       VARINT_FIELD(major_version)
       VARINT_FIELD(minor_version)
       if (blob_type != BLOB_TYPE_FORKNOTE2) VARINT_FIELD(timestamp)
       FIELD(prev_id)
+      if (blob_type == BLOB_TYPE_CRYPTONOTE_CUCKOO) FIELD(nonce8)
       if (blob_type != BLOB_TYPE_FORKNOTE2) {
         if (blob_type == BLOB_TYPE_AEON) {
           FIELD(nonce)
@@ -446,6 +449,7 @@ namespace cryptonote
           if (!typename Archive<W>::is_saving()) nonce = nonce32;
         }
       }
+      if (blob_type == BLOB_TYPE_CRYPTONOTE_CUCKOO) FIELD(cycle)
     END_SERIALIZE()
   };
 
