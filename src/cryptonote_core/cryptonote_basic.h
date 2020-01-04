@@ -438,7 +438,7 @@ namespace cryptonote
       VARINT_FIELD(minor_version)
       if (blob_type != BLOB_TYPE_FORKNOTE2) VARINT_FIELD(timestamp)
       FIELD(prev_id)
-      if (blob_type == BLOB_TYPE_CRYPTONOTE_CUCKOO) FIELD(nonce8)
+      if (blob_type == BLOB_TYPE_CRYPTONOTE_CUCKOO8) FIELD(nonce8)
       if (blob_type != BLOB_TYPE_FORKNOTE2) {
         if (blob_type == BLOB_TYPE_AEON) {
           FIELD(nonce)
@@ -449,7 +449,7 @@ namespace cryptonote
           if (!typename Archive<W>::is_saving()) nonce = nonce32;
         }
       }
-      if (blob_type == BLOB_TYPE_CRYPTONOTE_CUCKOO) FIELD(cycle)
+      if (blob_type == BLOB_TYPE_CRYPTONOTE_CUCKOO || blob_type == BLOB_TYPE_CRYPTONOTE_CUCKOO8) FIELD(cycle)
     END_SERIALIZE()
   };
 

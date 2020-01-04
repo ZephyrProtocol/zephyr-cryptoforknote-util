@@ -216,7 +216,7 @@ NAN_METHOD(construct_block_blob) { // (parentBlockTemplateBuffer, nonceBuffer, c
         if (!mergeBlocks(parent_block, b, std::vector<crypto::hash>())) return THROW_ERROR_EXCEPTION("Failed to postprocess mining block");
     }
 
-    if (blob_type == BLOB_TYPE_CRYPTONOTE_CUCKOO) {
+    if (blob_type == BLOB_TYPE_CRYPTONOTE_CUCKOO || blob_type == BLOB_TYPE_CRYPTONOTE_CUCKOO8) {
         if (info.Length() != 4) return THROW_ERROR_EXCEPTION("You must provide 4 arguments.");
         Local<Array> cycle = Local<Array>::Cast(info[3]);
         for (int i = 0; i < 32; i++ ) b.cycle.data[i] = cycle->Get(i)->NumberValue();
