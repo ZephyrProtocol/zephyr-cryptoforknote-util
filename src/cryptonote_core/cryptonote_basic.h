@@ -184,7 +184,7 @@ namespace cryptonote
 
     BEGIN_SERIALIZE()
       VARINT_FIELD(version)
-      if (version > loki_version_2 && blob_type == BLOB_TYPE_CRYPTONOTE_LOKI)
+      if (version > loki_version_2 && (blob_type == BLOB_TYPE_CRYPTONOTE_LOKI || blob_type == BLOB_TYPE_CRYPTONOTE_XTNC))
       {
         FIELD(output_unlock_times)
         if (version == loki_version_3_per_output_unlock_times)
@@ -193,12 +193,12 @@ namespace cryptonote
       VARINT_FIELD(unlock_time)
       FIELD(vin)
       FIELD(vout)
-      if (blob_type == BLOB_TYPE_CRYPTONOTE_LOKI)
+      if (blob_type == BLOB_TYPE_CRYPTONOTE_LOKI || blob_type == BLOB_TYPE_CRYPTONOTE_XTNC)
       {
         if (version >= loki_version_3_per_output_unlock_times && vout.size() != output_unlock_times.size()) return false;
       }
       FIELD(extra)
-      if (blob_type == BLOB_TYPE_CRYPTONOTE_LOKI && version >= loki_version_4_tx_types)
+      if ((blob_type == BLOB_TYPE_CRYPTONOTE_LOKI || blob_type == BLOB_TYPE_CRYPTONOTE_XTNC) && version >= loki_version_4_tx_types)
       {
         VARINT_FIELD(type)
         if (static_cast<uint16_t>(type) >= loki_type_count) return false;
@@ -438,7 +438,7 @@ namespace cryptonote
       VARINT_FIELD(minor_version)
       if (blob_type != BLOB_TYPE_FORKNOTE2) VARINT_FIELD(timestamp)
       FIELD(prev_id)
-      if (blob_type == BLOB_TYPE_CRYPTONOTE_CUCKOO8) FIELD(nonce8)
+      if (blob_type == BLOB_TYPE_CRYPTONOTE_CUCKOO) FIELD(nonce8)
       if (blob_type != BLOB_TYPE_FORKNOTE2) {
         if (blob_type == BLOB_TYPE_AEON) {
           FIELD(nonce)
@@ -449,7 +449,7 @@ namespace cryptonote
           if (!typename Archive<W>::is_saving()) nonce = nonce32;
         }
       }
-      if (blob_type == BLOB_TYPE_CRYPTONOTE_CUCKOO || blob_type == BLOB_TYPE_CRYPTONOTE_CUCKOO8) FIELD(cycle)
+      if (blob_type == BLOB_TYPE_CRYPTONOTE_XTNC || blob_type == BLOB_TYPE_CRYPTONOTE_CUCKOO) FIELD(cycle)
     END_SERIALIZE()
   };
 
