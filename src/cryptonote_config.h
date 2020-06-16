@@ -13,4 +13,5 @@ enum BLOB_TYPE {
   BLOB_TYPE_AEON              = 7, // Aeon
   BLOB_TYPE_CRYPTONOTE_CUCKOO = 8, // MoneroV / Swap
   BLOB_TYPE_CRYPTONOTE_XTNC   = 9, // XTNC
+  BLOB_TYPE_CRYPTONOTE_TUBE   = 10, // bittube
 };
