@@ -30,7 +30,7 @@
 
 #include <string>
 
-#include "easylogging++.h"
+//#include "easylogging++.h"
 
 #undef MONERO_DEFAULT_LOG_CATEGORY
 #define MONERO_DEFAULT_LOG_CATEGORY "default"
@@ -38,11 +38,7 @@
 #define MAX_LOG_FILE_SIZE 104850000 // 100 MB - 7600 bytes
 #define MAX_LOG_FILES 50
 
-#define MCLOG_TYPE(level, cat, type, x) do { \
-    if (ELPP->vRegistry()->allowed(level, cat)) { \
-      el::base::Writer(level, __FILE__, __LINE__, ELPP_FUNC, type).construct(cat) << x; \
-    } \
-  } while (0)
+#define MCLOG_TYPE(level, cat, type, x)
 
 #define MCLOG(level, cat, x) MCLOG_TYPE(level, cat, el::base::DispatchAction::NormalLog, x)
 #define MCLOG_FILE(level, cat, x) MCLOG_TYPE(level, cat, el::base::DispatchAction::FileOnlyLog, x)
