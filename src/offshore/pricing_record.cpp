@@ -39,6 +39,7 @@
 #include <openssl/pem.h>
 #include <openssl/rsa.h>
 #include <openssl/ssl.h>
+#include <iostream>
 
 #include "serialization/keyvalue_serialization.h"
 #include "storages/portable_storage.h"
