@@ -1362,9 +1362,6 @@ POP_WARNINGS
 
 #define LOG_FRAME2(log_name, x, y)
 
-#define MERROR(mess)
-#define MTRACE(mess)
-
 
 #endif
 
@@ -1454,6 +1451,10 @@ POP_WARNINGS
 #ifndef CHECK_AND_ASSERT_MES2
 #define CHECK_AND_ASSERT_MES2(expr, message)   do{if(!(expr)) {LOG_ERROR(message); };}while(0)
 #endif
+
+#define MERROR(mess)
+#define MTRACE(mess)
+
 
 }
 #endif //_MISC_LOG_EX_H_
