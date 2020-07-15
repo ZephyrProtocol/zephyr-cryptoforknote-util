@@ -87,7 +87,7 @@ namespace cryptonote
     uint64_t amount_out = 0;
     BOOST_FOREACH(auto& in, tx.vin)
     {
-      if (blob_type != BLOB_TYPE_CRYPTONOTE_XHV) {
+      if (tx.blob_type != BLOB_TYPE_CRYPTONOTE_XHV) {
         CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key), 0, "unexpected type id in transaction");
         amount_in += boost::get<txin_to_key>(in).amount;
       } else {
@@ -240,7 +240,7 @@ namespace cryptonote
   {
     BOOST_FOREACH(const auto& in, tx.vin)
     {
-      if (blob_type != BLOB_TYPE_CRYPTONOTE_XHV) {
+      if (tx.blob_type != BLOB_TYPE_CRYPTONOTE_XHV) {
         CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key), false, "wrong variant type: "
           << in.type().name() << ", expected " << typeid(txin_to_key).name()
           << ", in transaction id=" << get_transaction_hash(tx));
@@ -257,7 +257,7 @@ namespace cryptonote
   {
     BOOST_FOREACH(const tx_out& out, tx.vout)
     {
-      if (blob_type != BLOB_TYPE_CRYPTONOTE_XHV) {
+      if (tx.blob_type != BLOB_TYPE_CRYPTONOTE_XHV) {
         CHECK_AND_ASSERT_MES(out.target.type() == typeid(txout_to_key), false, "wrong variant type: "
           << out.target.type().name() << ", expected " << typeid(txout_to_key).name()
           << ", in transaction id=" << get_transaction_hash(tx));
@@ -273,7 +273,7 @@ namespace cryptonote
         CHECK_AND_NO_ASSERT_MES(0 < out.amount, false, "zero amount ouput in transaction id=" << get_transaction_hash(tx));
       }
 
-      if (blob_type != BLOB_TYPE_CRYPTONOTE_XHV) {
+      if (tx.blob_type != BLOB_TYPE_CRYPTONOTE_XHV) {
         if(!check_key(boost::get<txout_to_key>(out.target).key))
           return false;
       } else {
@@ -294,9 +294,9 @@ namespace cryptonote
     uint64_t money = 0;
     BOOST_FOREACH(const auto& in, tx.vin)
     {
-      if (blob_type == BLOB_TYPE_CRYPTONOTE_XHV && tx.vin[0].type() == typeid(txin_offshore)) {
+      if (tx.blob_type == BLOB_TYPE_CRYPTONOTE_XHV && tx.vin[0].type() == typeid(txin_offshore)) {
         CHECKED_GET_SPECIFIC_VARIANT(in, const txin_offshore, tokey_in, false);
-      } else if (blob_type == BLOB_TYPE_CRYPTONOTE_XHV && tx.vin[0].type() == typeid(txin_onshore)) {
+      } else if (tx.blob_type == BLOB_TYPE_CRYPTONOTE_XHV && tx.vin[0].type() == typeid(txin_onshore)) {
         CHECKED_GET_SPECIFIC_VARIANT(in, const txin_onshore, tokey_in, false);
       } else {
         CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);
@@ -438,7 +438,7 @@ namespace cryptonote
       const size_t inputs = t.vin.size();
       const size_t outputs = t.vout.size();
       size_t mixin;
-      if (blob_type != BLOB_TYPE_CRYPTONOTE_XHV) {
+      if (t.blob_type != BLOB_TYPE_CRYPTONOTE_XHV) {
         mixin = t.vin.empty() ? 0 : t.vin[0].type() == typeid(txin_to_key) ? boost::get<txin_to_key>(t.vin[0]).key_offsets.size() - 1 : 0;
       } else {
         mixin = t.vin.empty() ? 0 :
