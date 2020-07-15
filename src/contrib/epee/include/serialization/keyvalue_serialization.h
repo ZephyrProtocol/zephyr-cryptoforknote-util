@@ -31,6 +31,10 @@
 #include "misc_log_ex.h"
 #include "enableable.h"
 #include "keyvalue_serialization_overloads.h"
+
+#undef MONERO_DEFAULT_LOG_CATEGORY
+#define MONERO_DEFAULT_LOG_CATEGORY "serialization"
+
 namespace epee
 {
   /************************************************************************/
@@ -41,12 +45,12 @@ public: \
   template<class t_storage> \
   bool store( t_storage& st, typename t_storage::hsection hparent_section = nullptr) const\
   {\
-  return serialize_map<true>(*this, st, hparent_section);\
+    return serialize_map<true>(*this, st, hparent_section);\
   }\
   template<class t_storage> \
   bool _load( t_storage& stg, typename t_storage::hsection hparent_section = nullptr)\
   {\
-  return serialize_map<false>(*this, stg, hparent_section);\
+    return serialize_map<false>(*this, stg, hparent_section);\
   }\
   template<class t_storage> \
   bool load( t_storage& stg, typename t_storage::hsection hparent_section = nullptr)\
@@ -68,12 +72,29 @@ public: \
 #define KV_SERIALIZE_N(varialble, val_name) \
   epee::serialization::selector<is_store>::serialize(this_ref.varialble, stg, hparent_section, val_name);
 
+  template<typename T> inline void serialize_default(const T &t, T v) { }
+  template<typename T> inline void serialize_default(T &t, T v) { t = v; }
+
+#define KV_SERIALIZE_OPT_N(variable, val_name, default_value) \
+  do { \
+    if (!epee::serialization::selector<is_store>::serialize(this_ref.variable, stg, hparent_section, val_name)) \
+      epee::serialize_default(this_ref.variable, default_value); \
+  } while (0);
+
 #define KV_SERIALIZE_VAL_POD_AS_BLOB_FORCE_N(varialble, val_name) \
   epee::serialization::selector<is_store>::serialize_t_val_as_blob(this_ref.varialble, stg, hparent_section, val_name); 
 
 #define KV_SERIALIZE_VAL_POD_AS_BLOB_N(varialble, val_name) \
   static_assert(std::is_pod<decltype(this_ref.varialble)>::value, "t_type must be a POD type."); \
   KV_SERIALIZE_VAL_POD_AS_BLOB_FORCE_N(varialble, val_name)
+
+#define KV_SERIALIZE_VAL_POD_AS_BLOB_OPT_N(varialble, val_name, default_value) \
+  do { \
+    static_assert(std::is_pod<decltype(this_ref.varialble)>::value, "t_type must be a POD type."); \
+    bool ret = KV_SERIALIZE_VAL_POD_AS_BLOB_FORCE_N(varialble, val_name); \
+    if (!ret) \
+      epee::serialize_default(this_ref.varialble, default_value); \
+  } while(0);
 
 #define KV_SERIALIZE_CONTAINER_POD_AS_BLOB_N(varialble, val_name) \
   epee::serialization::selector<is_store>::serialize_stl_container_pod_val_as_blob(this_ref.varialble, stg, hparent_section, val_name);
@@ -82,8 +103,10 @@ public: \
 
 #define KV_SERIALIZE(varialble)                           KV_SERIALIZE_N(varialble, #varialble)
 #define KV_SERIALIZE_VAL_POD_AS_BLOB(varialble)           KV_SERIALIZE_VAL_POD_AS_BLOB_N(varialble, #varialble)
+#define KV_SERIALIZE_VAL_POD_AS_BLOB_OPT(varialble, def)  KV_SERIALIZE_VAL_POD_AS_BLOB_OPT_N(varialble, #varialble, def)
 #define KV_SERIALIZE_VAL_POD_AS_BLOB_FORCE(varialble)     KV_SERIALIZE_VAL_POD_AS_BLOB_FORCE_N(varialble, #varialble) //skip is_pod compile time check
 #define KV_SERIALIZE_CONTAINER_POD_AS_BLOB(varialble)     KV_SERIALIZE_CONTAINER_POD_AS_BLOB_N(varialble, #varialble)
+#define KV_SERIALIZE_OPT(variable,default_value)          KV_SERIALIZE_OPT_N(variable, #variable, default_value)
 
 }
 
