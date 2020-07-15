@@ -389,7 +389,6 @@ namespace cryptonote
     uint8_t minor_version;
     crypto::hash prev_id;
     uint32_t nonce;
-    offshore::pricing_record pricing_record;
     size_t number_of_transactions;
     std::vector<crypto::hash> miner_tx_branch;
     transaction miner_tx;
@@ -492,6 +491,7 @@ namespace cryptonote
     crypto::hash prev_id;
     uint64_t nonce;
     uint64_t nonce8;
+    offshore::pricing_record pricing_record;
     crypto::cycle cycle;
     crypto::cycle40 cycle40;
 
