@@ -513,7 +513,7 @@ namespace cryptonote
       }
       if (blob_type == BLOB_TYPE_CRYPTONOTE_XTNC || blob_type == BLOB_TYPE_CRYPTONOTE_CUCKOO) FIELD(cycle)
       if (blob_type == BLOB_TYPE_CRYPTONOTE_TUBE) FIELD(cycle40)
-      if (blob_type == BLOB_TYPE_CRYPTONOTE_XHV && major_version >= HF_VERSION_OFFSHORE_PRICING) FIELD(pricing_record)
+      if (blob_type == BLOB_TYPE_CRYPTONOTE_XHV) FIELD(pricing_record)
 
     END_SERIALIZE()
   };
