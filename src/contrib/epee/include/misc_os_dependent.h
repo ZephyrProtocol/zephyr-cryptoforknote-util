@@ -23,6 +23,10 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // 
+#ifdef _WIN32
+#include <winsock2.h>
+#endif
+
 #ifdef WIN32
   #ifndef WIN32_LEAN_AND_MEAN 
   #define WIN32_LEAN_AND_MEAN
@@ -42,16 +46,27 @@
 #include <mach/mach.h>
 #endif
 
+#include <iostream>
+#include <boost/lexical_cast.hpp>
+
 #pragma once 
 namespace epee
 {
 namespace misc_utils
 {
 
-        inline uint64_t get_tick_count()
+        inline uint64_t get_ns_count()
         {
 #if defined(_MSC_VER)
-                return ::GetTickCount64();
+                return ::GetTickCount64() * 1000000;
+#elif defined(WIN32)
+                static LARGE_INTEGER pcfreq = {0};
+                LARGE_INTEGER ticks;
+                if (!pcfreq.QuadPart)
+                    QueryPerformanceFrequency(&pcfreq);
+                QueryPerformanceCounter(&ticks);
+                ticks.QuadPart *= 1000000000; /* we want nsec */
+                return ticks.QuadPart / pcfreq.QuadPart;
 #elif defined(__MACH__)
                 clock_serv_t cclock;
                 mach_timespec_t mts;
@@ -60,14 +75,19 @@ namespace misc_utils
                 clock_get_time(cclock, &mts);
                 mach_port_deallocate(mach_task_self(), cclock);
 
-                return (mts.tv_sec * 1000) + (mts.tv_nsec/1000000);
+                return ((uint64_t)mts.tv_sec * 1000000000) + (mts.tv_nsec);
 #else
                 struct timespec ts;
                 if(clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
                         return 0;
                 }
-                return (ts.tv_sec * 1000) + (ts.tv_nsec/1000000);
+                return ((uint64_t)ts.tv_sec * 1000000000) + (ts.tv_nsec);
 #endif
+        }
+
+        inline uint64_t get_tick_count()
+        {
+                return get_ns_count() / 1000000;
         }
 
 
@@ -98,10 +118,19 @@ namespace misc_utils
 
 	inline std::string get_thread_string_id()
 	{
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 		return boost::lexical_cast<std::string>(GetCurrentThreadId());
 #elif defined(__GNUC__)  
 		return boost::lexical_cast<std::string>(pthread_self());
+#endif
+	}
+
+	inline bool get_gmt_time(time_t t, struct tm &tm)
+	{
+#ifdef _WIN32
+		return gmtime_s(&tm, &t);
+#else
+		return gmtime_r(&t, &tm);
 #endif
 	}
 }
