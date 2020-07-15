@@ -1362,6 +1362,9 @@ POP_WARNINGS
 
 #define LOG_FRAME2(log_name, x, y)
 
+#define MERROR(mess)
+#define MTRACE(mess)
+
 
 #endif
 
