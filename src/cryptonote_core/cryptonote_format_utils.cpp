@@ -296,14 +296,20 @@ namespace cryptonote
     {
       if (tx.blob_type == BLOB_TYPE_CRYPTONOTE_XHV && tx.vin[0].type() == typeid(txin_offshore)) {
         CHECKED_GET_SPECIFIC_VARIANT(in, const txin_offshore, tokey_in, false);
+        if(money > tokey_in.amount + money)
+          return false;
+        money += tokey_in.amount;
       } else if (tx.blob_type == BLOB_TYPE_CRYPTONOTE_XHV && tx.vin[0].type() == typeid(txin_onshore)) {
         CHECKED_GET_SPECIFIC_VARIANT(in, const txin_onshore, tokey_in, false);
+        if(money > tokey_in.amount + money)
+          return false;
+        money += tokey_in.amount;
       } else {
         CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);
+        if(money > tokey_in.amount + money)
+          return false;
+        money += tokey_in.amount;
       }
-      if(money > tokey_in.amount + money)
-        return false;
-      money += tokey_in.amount;
     }
     return true;
   }
