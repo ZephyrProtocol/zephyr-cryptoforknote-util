@@ -24,6 +24,10 @@ namespace crypto {
     public:
     uint32_t data[40];
   };
+  POD_CLASS cycle48 {
+    public:
+    uint32_t data[48];
+  };
   POD_CLASS hash {
     char data[HASH_SIZE];
   };
