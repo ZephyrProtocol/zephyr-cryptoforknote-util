@@ -231,6 +231,12 @@ NAN_METHOD(construct_block_blob) { // (parentBlockTemplateBuffer, nonceBuffer, c
         for (int i = 0; i < 40; i++ ) b.cycle40.data[i] = cycle->Get(isolate->GetCurrentContext(), i).ToLocalChecked()->NumberValue(isolate->GetCurrentContext()).ToChecked();
     }
 
+    if (blob_type == BLOB_TYPE_CRYPTONOTE_XTA) {
+        if (info.Length() != 4) return THROW_ERROR_EXCEPTION("You must provide 4 arguments.");
+        Local<Array> cycle = Local<Array>::Cast(info[3]);
+        for (int i = 0; i < 48; i++ ) b.cycle48.data[i] = cycle->Get(isolate->GetCurrentContext(), i).ToLocalChecked()->NumberValue(isolate->GetCurrentContext()).ToChecked();
+    }
+
     if (!block_to_blob(b, output)) return THROW_ERROR_EXCEPTION("Failed to convert block to blob");
 
     v8::Local<v8::Value> returnValue = Nan::CopyBuffer((char*)output.data(), output.size()).ToLocalChecked();
