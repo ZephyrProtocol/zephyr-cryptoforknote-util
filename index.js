@@ -122,7 +122,7 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
   const seed_hash = seedhash_buf.toString('hex');
 
   const diff1 = 0x00000000ff000000000000000000000000000000000000000000000000000000;
-  const difficulty = parseFloat((diff1 / bignum(rpcData.target, 16).toNumber()).toFixed(9))
+  const difficulty = parseFloat((diff1 / bignum(rpcData.target, 16).toNumber()).toFixed(9));
 
   return {
     blocktemplate_blob: blob,
