@@ -1,1 +1,5 @@
-module.exports = require('bindings')('cryptoforknote.node')
+module.exports = function () {
+    let obj = require('bindings')('cryptoforknote.node')
+    return obj;
+};
+
