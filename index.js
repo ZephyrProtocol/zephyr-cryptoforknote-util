@@ -119,15 +119,14 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
     seedhash_buf = sha3.update(seedhash_buf).digest();
     sha3.reset();
   }
-  const seed_hash = seedhash_buf.toString('hex');
 
   const diff1 = 0x00000000ff000000000000000000000000000000000000000000000000000000;
   const difficulty = parseFloat((diff1 / bignum(rpcData.target, 16).toNumber()).toFixed(9));
 
   return {
-    blocktemplate_blob: blob,
+    blocktemplate_blob: blob.toString('hex'),
     reserved_offset:    offset1 + 4 /* txCoinbase.version */ + 1 /* txCoinbase.marker */ + 1 /* txCoinbase.flag */ + 1 /* txCoinbase.vinLen */,
-    seed_hash:          seed_hash,
+    seed_hash:          seedhash_buf.toString('hex'),
     difficulty:         difficulty,
     height:             rpcData.height,
     rpc:                rpcData,
