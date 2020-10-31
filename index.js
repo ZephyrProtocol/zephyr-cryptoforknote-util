@@ -3,6 +3,9 @@ module.exports = require('bindings')('cryptoforknote.node');
 const SHA3    = require('sha3');
 const bignum  = require('bignum');
 const bitcoin = require('bitcoinjs-lib');
+const varuint = require('varuint-bitcoin');
+const crypto  = require('crypt');
+const fastMerkleRoot = require('merkle-lib/fastRoot');
 const promise = require('promise');
 const merklebitcoin = promise.denodeify(require('merkle-bitcoin'));
 
@@ -25,43 +28,38 @@ function reverseBuffer(buff) {
 function getMerkleRoot(rpcData, generateTxRaw) {
   hashes = [ reverseBuffer(new Buffer(generateTxRaw, 'hex')).toString('hex') ];
   rpcData.transactions.forEach(function (value) {
-    if (value.txid !== undefined) {
-      hashes.push(value.txid);
-    } else {
-      hashes.push(value.hash);
-    }
+    hashes.push(value.txid ? value.txid : value.hash);
   });
   if (hashes.length === 1) return hashes[0];
   return Object.values(merklebitcoin(hashes))[2].root;
-};
+}
 
-function varIntBuffer(n) {
-  if (n < 0xfd) {
-    return new Buffer([n]);
-  } else if (n <= 0xffff) {
-    let buff = new Buffer(3);
-    buff[0] = 0xfd;
-    buff.writeUInt16LE(n, 1);
-    return buff;
-  } else if (n <= 0xffffffff) {
-    let buff = new Buffer(5);
-    buff[0] = 0xfe;
-    buff.writeUInt32LE(n, 1);
-    return buff;
-  } else {
-    let buff = new Buffer(9);
-    buff[0] = 0xff;
-    buff.writeUInt64LE(n, 1);
-    return buff;
-  }
-};
+function txesHaveWitnessCommit(transactions) {
+  return (
+    transactions instanceof Array &&
+    transactions[0] &&
+    transactions[0].ins &&
+    transactions[0].ins instanceof Array &&
+    transactions[0].ins[0] &&
+    transactions[0].ins[0].witness &&
+    transactions[0].ins[0].witness instanceof Array &&
+    transactions[0].ins[0].witness.length > 0
+  );
+}
+
+function getMerkleRoot2(transactions) {
+  if (transactions.length === 0) return null;
+  const forWitness = txesHaveWitnessCommit(transactions);
+  const hashes = transactions.map(transaction => transaction.getHash(forWitness));
+  const hash256 = function (buffer) { return crypto.createHash('sha256').update(buffer).digest(); };
+  const rootHash = fastMerkleRoot(hashes, hash256);
+  return forWitness ? hash256(Buffer.concat([rootHash, transactions[0].ins[0].witness[0]])) : rootHash;
+}
 
 let last_epoch_number;
-let last_seedhash;
+let last_seed_hash;
 
 module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
-  // epoch length
-  const EPOCH_LENGTH = 7500;
   const poolAddrHash = bitcoin.address.fromBase58Check(poolAddress).hash;
   let txCoinbase = new bitcoin.Transaction();
   { // input for coinbase tx
@@ -78,6 +76,7 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
     ]);
 
     txCoinbase.addInput(
+      // will be used for our reserved_offset extra_nonce
       new Buffer('0000000000000000000000000000000000000000000000000000000000000000', 'hex'),
       0xFFFFFFFF, 0xFFFFFFFF,
       new Buffer.concat([serializedBlockHeight, Buffer('6b6177706f77', 'hex')])
@@ -85,7 +84,7 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
 
     txCoinbase.addOutput(scriptCompile(poolAddrHash), Math.floor(rpcData.coinbasevalue));
 
-    if (rpcData.default_witness_commitment !== undefined) {
+    if (rpcData.default_witness_commitment) {
       txCoinbase.addOutput(new Buffer(rpcData.default_witness_commitment, 'hex'), 0);
     }
   }
@@ -106,7 +105,7 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
     header, // 80 bytes
     new Buffer('EEEEEEEEEEEEEEEE', 'hex'), // 8 bytes
     new Buffer('EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE', 'hex'), // 32 bytes
-    varIntBuffer(rpcData.transactions.length + 1)
+    varuint.encode(rpcData.transactions.length + 1, new Buffer(), 0)
   ]);
   const offset1 = blob.length; 
   blob = new Buffer.concat([ blob, new Buffer(txCoinbase.toHex(), 'hex') ]);
@@ -115,15 +114,16 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
     blob = new Buffer.concat([ blob, new Buffer(value.data, 'hex') ]);
   });
 
+  const EPOCH_LENGTH = 7500;
   const epoch_number = Math.floor(rpcData.height / EPOCH_LENGTH);
   if (last_epoch_number !== epoch_number) {
     let sha3 = new SHA3.SHA3Hash(256);
     if (last_epoch_number && last_epoch_number + 1 === epoch_number) {
-      last_seedhash = sha3.update(last_seedhash).digest();
+      last_seed_hash = sha3.update(last_seed_hash).digest();
     } else {
-      last_seedhash = new Buffer(32, 0);
-      for (let i=0; i < epoch_number; i++) {
-        last_seedhash = sha3.update(last_seedhash).digest();
+      last_seed_hash = new Buffer(32, 0);
+      for (let i = 0; i < epoch_number; i++) {
+        last_seed_hash = sha3.update(last_seed_hash).digest();
         sha3.reset();
       }
     }
@@ -136,9 +136,24 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
   return {
     blocktemplate_blob: blob.toString('hex'),
     reserved_offset:    offset1 + 4 /* txCoinbase.version */ + 1 /* txCoinbase.vinLen */,
-    seed_hash:          last_seedhash.toString('hex'),
+    seed_hash:          last_seed_hash.toString('hex'),
     difficulty:         difficulty,
     height:             rpcData.height,
     rpc:                rpcData,
   };
+};
+
+module.exports.convertRavenBlob = function(blobBuffer) {
+  let header = blobBuffer.slice(0, 80);
+  let offset = 80 + 8 + 32;
+  const nTransactions = varuint.decode(blobBuffer, offset);
+  offset += varuint.decode.bytes;
+  let transactions = [];
+  for (let i = 0; i < nTransactions; ++i) {
+    const tx = bitcoin.Transaction.fromBuffer(blobBuffer.slice(offset), true);
+    transactions.push(tx);
+    offset += tx.byteLength();
+  }
+  getMerkleRoot2(transactions).copy(header, 4 + 32);
+  return header;
 };
