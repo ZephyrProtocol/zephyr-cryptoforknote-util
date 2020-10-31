@@ -56,6 +56,9 @@ function varIntBuffer(n) {
   }
 };
 
+let last_epoch_number;
+let last_seedhash;
+
 module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
   // epoch length
   const EPOCH_LENGTH = 7500;
@@ -112,12 +115,19 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
     blob = new Buffer.concat([ blob, new Buffer(value.data, 'hex') ]);
   });
 
-  let sha3 = new SHA3.SHA3Hash(256);
-  let seedhash_buf = new Buffer(32, 0);
   const epoch_number = Math.floor(rpcData.height / EPOCH_LENGTH);
-  for (let i=0; i < epoch_number; i++) {
-    seedhash_buf = sha3.update(seedhash_buf).digest();
-    sha3.reset();
+  if (last_epoch_number !== epoch_number) {
+    let sha3 = new SHA3.SHA3Hash(256);
+    if (last_epoch_number && last_epoch_number + 1 === epoch_number) {
+      last_seedhash = sha3.update(last_seedhash).digest();
+    } else {
+      last_seedhash = new Buffer(32, 0);
+      for (let i=0; i < epoch_number; i++) {
+        last_seedhash = sha3.update(last_seedhash).digest();
+        sha3.reset();
+      }
+    }
+    last_epoch_number = epoch_number;
   }
 
   const diff1 = 0x00000000ff000000000000000000000000000000000000000000000000000000;
@@ -125,8 +135,8 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
 
   return {
     blocktemplate_blob: blob.toString('hex'),
-    reserved_offset:    offset1 + 4 /* txCoinbase.version */ + 1 /* txCoinbase.marker */ + 1 /* txCoinbase.flag */ + 1 /* txCoinbase.vinLen */,
-    seed_hash:          seedhash_buf.toString('hex'),
+    reserved_offset:    offset1 + 4 /* txCoinbase.version */ + 1 /* txCoinbase.vinLen */,
+    seed_hash:          last_seedhash.toString('hex'),
     difficulty:         difficulty,
     height:             rpcData.height,
     rpc:                rpcData,
