@@ -105,7 +105,7 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
     header, // 80 bytes
     new Buffer('EEEEEEEEEEEEEEEE', 'hex'), // 8 bytes
     new Buffer('EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE', 'hex'), // 32 bytes
-    varuint.encode(rpcData.transactions.length + 1, new Buffer(), 0)
+    varuint.encode(rpcData.transactions.length + 1, new Buffer(varuint.encodingLength(rpcData.transactions.length + 1)), 0)
   ]);
   const offset1 = blob.length; 
   blob = new Buffer.concat([ blob, new Buffer(txCoinbase.toHex(), 'hex') ]);
