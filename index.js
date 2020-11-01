@@ -139,7 +139,7 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
     seed_hash:          last_seed_hash.toString('hex'),
     difficulty:         difficulty,
     height:             rpcData.height,
-    rpc:                rpcData,
+    bits:               rpcData.bits,
   };
 };
 
