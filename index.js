@@ -155,7 +155,7 @@ module.exports.convertRavenBlob = function(blobBuffer) {
     offset += tx.byteLength();
   }
   getMerkleRoot2(transactions).copy(header, 4 + 32);
-  return reverseBuffer(crypto.createHash('sha256').update(header_hash).digest());
+  return reverseBuffer(crypto.createHash('sha256').update(header).digest());
 };
 
 module.exports.constructNewRavenBlob = function(blockTemplate, nonceBuff, mixhashBuff) {
