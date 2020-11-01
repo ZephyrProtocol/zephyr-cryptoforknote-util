@@ -58,6 +58,7 @@ function getMerkleRoot2(transactions) {
 
 let last_epoch_number;
 let last_seed_hash;
+const diff1 = 0x00000000ff000000000000000000000000000000000000000000000000000000;
 
 module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
   const poolAddrHash = bitcoin.address.fromBase58Check(poolAddress).hash;
@@ -130,7 +131,6 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
     last_epoch_number = epoch_number;
   }
 
-  const diff1 = 0x00000000ff000000000000000000000000000000000000000000000000000000;
   const difficulty = parseFloat((diff1 / bignum(rpcData.target, 16).toNumber()).toFixed(9));
 
   return {
@@ -144,7 +144,7 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
 };
 
 module.exports.convertRavenBlob = function(blobBuffer) {
-  let header = blobBuffer.slice(0, 80);
+  let header = blobBuffer.slice(0, 80); // header
   let offset = 80 + 8 + 32;
   const nTransactions = varuint.decode(blobBuffer, offset);
   offset += varuint.decode.bytes;
@@ -155,5 +155,16 @@ module.exports.convertRavenBlob = function(blobBuffer) {
     offset += tx.byteLength();
   }
   getMerkleRoot2(transactions).copy(header, 4 + 32);
-  return header;
+  return reverseBuffer(crypto.createHash('sha256').update(header_hash).digest());
+};
+
+module.exports.constructNewRavenBlob = function(blockTemplate, nonceBuff, mixhashBuff) {
+  nonceBuff.copy  (blockTemplate, 80, 0, 8);
+  mixhashBuff.copy(blockTemplate, 88, 0, 32);
+  return blockTemplate;
+};
+
+module.exports.constructNewGrinBlob = function(blockTemplate, nonceBuff) {
+  nonceBuff.copy(blockTemplate, 39, 0, 4);
+  return blockTemplate;
 };
