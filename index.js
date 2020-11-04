@@ -164,7 +164,7 @@ module.exports.constructNewRavenBlob = function(blockTemplate, nonceBuff, mixhas
   return blockTemplate;
 };
 
-module.exports.constructNewGrinBlob = function(blockTemplate, nonceBuff) {
+module.exports.constructNewDeroBlob = function(blockTemplate, nonceBuff) {
   nonceBuff.copy(blockTemplate, 39, 0, 4);
   return blockTemplate;
 };
