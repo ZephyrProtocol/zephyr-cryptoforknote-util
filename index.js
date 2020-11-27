@@ -63,11 +63,12 @@ const diff1 = 0x00000000ff000000000000000000000000000000000000000000000000000000
 module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
   const poolAddrHash = bitcoin.address.fromBase58Check(poolAddress).hash;
   let txCoinbase = new bitcoin.Transaction();
+  let bytesHeight;
   { // input for coinbase tx
     let blockHeightSerial = rpcData.height.toString(16).length % 2 === 0 ?
-                            rpcData.height.toString(16) :
+                                  rpcData.height.toString(16) :
                             '0' + rpcData.height.toString(16);
-    const bytesHeight = Math.ceil((rpcData.height << 1).toString(2).length / 8);
+    bytesHeight = Math.ceil((rpcData.height << 1).toString(2).length / 8);
     const lengthDiff  = blockHeightSerial.length/2 - bytesHeight;
     for (let i = 0; i < lengthDiff; i++) blockHeightSerial = blockHeightSerial + '00';
     const serializedBlockHeight = new Buffer.concat([
@@ -136,7 +137,8 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
   return {
     blocktemplate_blob: blob.toString('hex'),
     // reserved_offset to CCCCCC....
-    reserved_offset:    offset1 + 4 /* txCoinbase.version */ + 1 /* vinLen */  + 32 /* hash */ + 4 /* index  */ + 1 /* vScript len */,
+    reserved_offset:    offset1 + 4 /* txCoinbase.version */ + 1 /* vinLen */  + 32 /* hash */ + 4 /* index  */ +
+                        1 /* vScript len */ + 1 /* coinbase height len */ + bytesHeight + 1 /* trailing zero byte */,
     seed_hash:          last_seed_hash.toString('hex'),
     difficulty:         difficulty,
     height:             rpcData.height,
