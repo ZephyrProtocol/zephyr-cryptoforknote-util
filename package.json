@@ -1,6 +1,6 @@
 {
   "name": "cryptoforknote-util",
-  "version": "9.0.3",
+  "version": "9.0.4",
   "main": "cryptoforknote-util",
   "author": {
     "name": "LucasJones",
@@ -18,7 +18,7 @@
     "sha3":     "*",
     "varuint-bitcoin": "^1.0.4",
     "bitcoinjs-lib":   "git+https://github.com/bitcoinjs/bitcoinjs-lib.git#533d6c2e6d0aa4111f7948b1c12003cf6ef83137",
-    "merkle-bitcoin":  "git+https://github.com/joshuayabut/merkle-bitcoin.git#ec00ae20ba60d444e150ead03c747695ddaa83a1"
+    "merkle-bitcoin":  "git+https://github.com/CloudMining/merkle-bitcoin.git#ec00ae20ba60d444e150ead03c747695ddaa83a1"
   },
   "keywords": [
     "cryptonight",
