@@ -146,22 +146,27 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
   };
 };
 
-module.exports.convertRavenBlob = function(blobBuffer) {
-  let header = blobBuffer.slice(0, 80); // header
+function update_merkle_root_hash(blob_in, blob_out) {
   let offset = 80 + 8 + 32;
-  const nTransactions = varuint.decode(blobBuffer, offset);
+  const nTransactions = varuint.decode(blob_in, offset);
   offset += varuint.decode.bytes;
   let transactions = [];
   for (let i = 0; i < nTransactions; ++i) {
-    const tx = bitcoin.Transaction.fromBuffer(blobBuffer.slice(offset), true);
+    const tx = bitcoin.Transaction.fromBuffer(blob_in.slice(offset), true);
     transactions.push(tx);
     offset += tx.byteLength();
   }
-  getMerkleRoot2(transactions).copy(header, 4 + 32);
+  getMerkleRoot2(transactions).copy(blob_out, 4 + 32);
+};
+
+module.exports.convertRavenBlob = function(blobBuffer) {
+  let header = blobBuffer.slice(0, 80);
+  update_merkle_root_hash(blobBuffer, header);
   return reverseBuffer(crypto.createHash('sha256').update(header).digest());
 };
 
 module.exports.constructNewRavenBlob = function(blockTemplate, nonceBuff, mixhashBuff) {
+  update_merkle_root_hash(blockTemplate, blockTemplate);
   nonceBuff.copy  (blockTemplate, 80, 0, 8);
   mixhashBuff.copy(blockTemplate, 88, 0, 32);
   return blockTemplate;
