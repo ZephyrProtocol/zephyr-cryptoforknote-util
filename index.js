@@ -62,6 +62,7 @@ const diff1 = 0x00000000ff000000000000000000000000000000000000000000000000000000
 
 module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
   const poolAddrHash = bitcoin.address.fromBase58Check(poolAddress).hash;
+
   let txCoinbase = new bitcoin.Transaction();
   let bytesHeight;
   { // input for coinbase tx
@@ -156,7 +157,7 @@ function update_merkle_root_hash(blob_in, blob_out) {
     transactions.push(tx);
     offset += tx.byteLength();
   }
-  getMerkleRoot2(transactions).copy(blob_out, 4 + 32);
+  reverseBuffer(getMerkleRoot2(transactions)).copy(blob_out, 4 + 32);
 };
 
 module.exports.convertRavenBlob = function(blobBuffer) {
