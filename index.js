@@ -164,7 +164,8 @@ function update_merkle_root_hash(blob_in, blob_out) {
 module.exports.convertRavenBlob = function(blobBuffer) {
   let header = blobBuffer.slice(0, 80);
   update_merkle_root_hash(blobBuffer, header);
-  return reverseBuffer(crypto.createHash('sha256').update(header).digest());
+  const hash256 = function (buffer) { return crypto.createHash('sha256').update(buffer).digest(); };
+  return reverseBuffer(hash256(crypto.createHash('sha256').update(header).digest()));
 };
 
 module.exports.constructNewRavenBlob = function(blockTemplate, nonceBuff, mixhashBuff) {
