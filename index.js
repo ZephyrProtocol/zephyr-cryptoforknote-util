@@ -5,8 +5,7 @@ const bignum  = require('bignum');
 const bitcoin = require('bitcoinjs-lib');
 const varuint = require('varuint-bitcoin');
 const crypto  = require('crypto');
-const promise = require('promise');
-const merklebitcoin = promise.denodeify(require('merkle-bitcoin'));
+const fastMerkleRoot = require('merkle-lib/fastRoot');
 
 function scriptCompile(addrHash) {
   return bitcoin.script.compile([
@@ -37,22 +36,21 @@ function txesHaveWitnessCommit(transactions) {
   );
 }
 
-function hash256(buffer) {
+function sha256(buffer) {
   return crypto.createHash('sha256').update(buffer).digest();
 };
 
+function hash256(buffer) {
+  return sha256(sha256(buffer));
+};
+
 function getMerkleRoot(transactions) {
-  // error
-  if (transactions.length === 0) return new Buffer('0000000000000000000000000000000000000000000000000000000000000000', 'hex');
-  // coinbase tx only
-  const txhash0 = transactions[0].getHash();
-  if (transactions.length === 1) return txhash0;
-  // have other txs
-  let hashes = [ reverseBuffer(txhash0).toString('hex') ];
-  transactions.slice(1).forEach(function (value) {
-    hashes.push(value.hash);
-  });
-  return reverseBuffer(new Buffer(Object.values(merklebitcoin(hashes))[2].root, 'hex'));
+  if (transactions.length === 0) return new Buffer('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
+  const forWitness = txesHaveWitnessCommit(transactions);
+  const hashes = transactions.map(transaction => transaction.getHash(forWitness));
+  const rootHash = fastMerkleRoot(hashes, hash256);
+  console.log(forWitness);
+  return forWitness ? hash256(Buffer.concat([rootHash, transactions[0].ins[0].witness[0]])) : rootHash;
 }
 
 let last_epoch_number;
@@ -161,7 +159,7 @@ function update_merkle_root_hash(blob_in, blob_out) {
 module.exports.convertRavenBlob = function(blobBuffer) {
   let header = blobBuffer.slice(0, 80);
   update_merkle_root_hash(blobBuffer, header);
-  return reverseBuffer(hash256(hash256(header)));
+  return reverseBuffer(hash256(header));
 };
 
 module.exports.constructNewRavenBlob = function(blockTemplate, nonceBuff, mixhashBuff) {
