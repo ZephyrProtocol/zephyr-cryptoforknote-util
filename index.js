@@ -42,10 +42,14 @@ function hash256(buffer) {
 };
 
 function getMerkleRoot(transactions) {
-  if (transactions.length === 0) return null;
-  if (transactions.length === 1) return transactions[0].getHash();
-  let hashes = [ reverseBuffer(transactions[0].getHash()).toString('hex') ];
-  transactions.split(1).forEach(function (value) {
+  // error
+  if (transactions.length === 0) return new Buffer('0000000000000000000000000000000000000000000000000000000000000000', 'hex');
+  // coinbase tx only
+  const txhash0 = transactions[0].getHash();
+  if (transactions.length === 1) return txhash0;
+  // have other txs
+  let hashes = [ reverseBuffer(txhash0).toString('hex') ];
+  transactions.slice(1).forEach(function (value) {
     hashes.push(value.hash);
   });
   return reverseBuffer(new Buffer(Object.values(merklebitcoin(hashes))[2].root, 'hex'));
