@@ -157,7 +157,8 @@ function update_merkle_root_hash(blob_in, blob_out) {
     transactions.push(tx);
     offset += tx.byteLength();
   }
-  reverseBuffer(getMerkleRoot2(transactions)).copy(blob_out, 4 + 32);
+  const rpcData = { transactions: transactions.slice(1) };
+  reverseBuffer(getMerkleRoot(rpcData, transactions[0].getHash().toString('hex'))).copy(blob_out, 4 + 32);
 };
 
 module.exports.convertRavenBlob = function(blobBuffer) {
