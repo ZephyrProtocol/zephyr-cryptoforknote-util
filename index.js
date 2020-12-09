@@ -44,7 +44,7 @@ function hash256(buffer) {
 function getMerkleRoot(transactions) {
   if (transactions.length === 0) return null;
   if (transactions.length === 1) return transactions[0].getHash();
-  let hashes = [ reverseBuffer(transactions[0]).toString('hex') ];
+  let hashes = [ reverseBuffer(transactions[0].getHash()).toString('hex') ];
   transactions.split(1).forEach(function (value) {
     hashes.push(value.hash);
   });
