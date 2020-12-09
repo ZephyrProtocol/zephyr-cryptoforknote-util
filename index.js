@@ -5,8 +5,8 @@ const bignum  = require('bignum');
 const bitcoin = require('bitcoinjs-lib');
 const varuint = require('varuint-bitcoin');
 const crypto  = require('crypto');
-const fastMerkleRoot = require('merkle-lib/fastRoot');
 const promise = require('promise');
+const merklebitcoin = promise.denodeify(require('merkle-bitcoin'));
 
 function scriptCompile(addrHash) {
   return bitcoin.script.compile([
@@ -43,10 +43,12 @@ function hash256(buffer) {
 
 function getMerkleRoot(transactions) {
   if (transactions.length === 0) return null;
-  const forWitness = txesHaveWitnessCommit(transactions);
-  const hashes = transactions.map(transaction => transaction.getHash(forWitness));
-  const rootHash = fastMerkleRoot(hashes, hash256);
-  return forWitness ? hash256(Buffer.concat([rootHash, transactions[0].ins[0].witness[0]])) : rootHash;
+  if (transactions.length === 1) return transactions[0];
+  let hashes = [ reverseBuffer(transactions[0]).toString('hex') ];
+  transactions.split(1).forEach(function (value) {
+    hashes.push(value.hash);
+  });
+  return reverseBuffer(new Buffer(Object.values(merklebitcoin(hashes))[2].root, 'hex'));
 }
 
 let last_epoch_number;
@@ -149,7 +151,7 @@ function update_merkle_root_hash(blob_in, blob_out) {
     transactions.push(tx);
     offset += tx.byteLength();
   }
-  reverseBuffer(getMerkleRoot(transactions)).copy(blob_out, 4 + 32);
+  getMerkleRoot(transactions).copy(blob_out, 4 + 32);
 };
 
 module.exports.convertRavenBlob = function(blobBuffer) {
