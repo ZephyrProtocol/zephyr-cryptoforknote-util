@@ -49,7 +49,6 @@ function getMerkleRoot(transactions) {
   const forWitness = txesHaveWitnessCommit(transactions);
   const hashes = transactions.map(transaction => transaction.getHash(forWitness));
   const rootHash = fastMerkleRoot(hashes, hash256);
-  console.log(forWitness);
   return forWitness ? hash256(Buffer.concat([rootHash, transactions[0].ins[0].witness[0]])) : rootHash;
 }
 
