@@ -55,12 +55,12 @@ function getMerkleRoot(transactions) {
 let last_epoch_number;
 let last_seed_hash;
 
-module.exports.baseRavenDiff = function() {
-  return parseInt('0x00000000ff000000000000000000000000000000000000000000000000000000');
+module.exports.baseDiff = function() {
+  return bignum('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF', 16);
 };
 
-module.exports.baseEthDiff = function() {
-  return parseInt('0x00000000ffff0000000000000000000000000000000000000000000000000000');
+module.exports.baseRavenDiff = function() {
+  return parseInt('0x00000000ff000000000000000000000000000000000000000000000000000000');
 };
 
 module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
@@ -182,10 +182,11 @@ module.exports.constructNewDeroBlob = function(blockTemplate, nonceBuff) {
 };
 
 module.exports.EthBlockTemplate = function(rpcData) {
-  const difficulty = parseFloat((module.exports.baseEthDiff() / bignum(rpcData[2].substr(2), 16).toNumber()).toFixed(19));
+  const difficulty = (module.exports.baseDiff() / bignum(rpcData[2].substr(2), 16)).toNumber();
   return {
     hash:               rpcData[0].substr(2),
     seed_hash:          rpcData[1].substr(2),
-    difficulty:         difficulty
+    difficulty:         difficulty,
+    height:             parseInt(rpcData[3])
   };
 };
