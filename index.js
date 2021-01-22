@@ -54,7 +54,14 @@ function getMerkleRoot(transactions) {
 
 let last_epoch_number;
 let last_seed_hash;
-const diff1 = 0x00000000ff000000000000000000000000000000000000000000000000000000;
+
+module.exports.baseRavenDiff = function() {
+  return parseInt('0x00000000ff000000000000000000000000000000000000000000000000000000');
+};
+
+module.exports.baseEthDiff = function() {
+  return parseInt('0x00000000ffff0000000000000000000000000000000000000000000000000000');
+};
 
 module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
   const poolAddrHash = bitcoin.address.fromBase58Check(poolAddress).hash;
@@ -128,7 +135,7 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
     last_epoch_number = epoch_number;
   }
 
-  const difficulty = parseFloat((diff1 / bignum(rpcData.target, 16).toNumber()).toFixed(9));
+  const difficulty = parseFloat((module.exports.baseRavenDiff() / bignum(rpcData.target, 16).toNumber()).toFixed(9));
 
   return {
     blocktemplate_blob: blob.toString('hex'),
@@ -139,6 +146,7 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
     difficulty:         difficulty,
     height:             rpcData.height,
     bits:               rpcData.bits,
+    prev_hash:          rpcData.previousblockhash,
   };
 };
 
@@ -171,4 +179,13 @@ module.exports.constructNewRavenBlob = function(blockTemplate, nonceBuff, mixhas
 module.exports.constructNewDeroBlob = function(blockTemplate, nonceBuff) {
   nonceBuff.copy(blockTemplate, 39, 0, 4);
   return blockTemplate;
+};
+
+module.exports.EthBlockTemplate = function(rpcData) {
+  const difficulty = parseFloat((module.exports.baseEth() / bignum(rpcData[2].lstrip("0x"), 16).toNumber()).toFixed(19));
+  return {
+    hash:               rpcData[0].lstrip("0x"),
+    seed_hash:          rpcData[1].lstrip("0x"),
+    difficulty:         difficulty
+  };
 };
