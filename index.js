@@ -182,7 +182,7 @@ module.exports.constructNewDeroBlob = function(blockTemplate, nonceBuff) {
 };
 
 module.exports.EthBlockTemplate = function(rpcData) {
-  const difficulty = parseFloat((module.exports.baseEth() / bignum(rpcData[2].lstrip("0x"), 16).toNumber()).toFixed(19));
+  const difficulty = parseFloat((module.exports.baseEthDiff() / bignum(rpcData[2].lstrip("0x"), 16).toNumber()).toFixed(19));
   return {
     hash:               rpcData[0].lstrip("0x"),
     seed_hash:          rpcData[1].lstrip("0x"),
