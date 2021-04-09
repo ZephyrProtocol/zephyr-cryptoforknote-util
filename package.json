@@ -11,13 +11,13 @@
     "url": "https://github.com/MoneroOcean/node-cryptoforknote-util.git"
   },
   "dependencies": {
-    "promise":  "*",
+    "promise": "*",
     "bindings": "*",
-    "nan":      "^2.0.0",
-    "bignum":   "^0.13.1",
-    "sha3":     "*",
+    "nan": "^2.0.0",
+    "bignum": "^0.13.1",
+    "sha3": "*",
     "varuint-bitcoin": "^1.0.4",
-    "bitcoinjs-lib":   "git+https://github.com/bitcoinjs/bitcoinjs-lib.git#533d6c2e6d0aa4111f7948b1c12003cf6ef83137"
+    "bitcoinjs-lib": "git+https://github.com/bitcoinjs/bitcoinjs-lib.git#533d6c2e6d0aa4111f7948b1c12003cf6ef83137"
   },
   "keywords": [
     "cryptonight",

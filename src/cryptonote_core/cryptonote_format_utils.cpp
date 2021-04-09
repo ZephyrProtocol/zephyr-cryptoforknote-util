@@ -85,14 +85,24 @@ namespace cryptonote
   {
     uint64_t amount_in = 0;
     uint64_t amount_out = 0;
+    if ((tx.blob_type == BLOB_TYPE_CRYPTONOTE_XHV) && (tx.version > 1))
+    {
+      // This is the correct way to get the fee for Haven, because outs may be in different currencies to ins
+      fee = tx.rct_signatures.txnFee + tx.rct_signatures.txnOffshoreFee;
+      return true;
+    }
     BOOST_FOREACH(auto& in, tx.vin)
     {
       if (tx.blob_type != BLOB_TYPE_CRYPTONOTE_XHV) {
         CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key), 0, "unexpected type id in transaction");
         amount_in += boost::get<txin_to_key>(in).amount;
       } else {
-        CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key) || in.type() == typeid(txin_offshore) || in.type() == typeid(txin_onshore), 0, "unexpected type id in transaction");
-        amount_in += in.type() == typeid(txin_to_key) ? boost::get<txin_to_key>(in).amount : in.type() == typeid(txin_onshore) ? boost::get<txin_onshore>(in).amount : boost::get<txin_offshore>(in).amount;
+        CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key) || in.type() == typeid(txin_offshore) || in.type() == typeid(txin_onshore) || in.type() == typeid(txin_xasset), 0, "unexpected type id in transaction");
+        amount_in +=
+	  in.type() == typeid(txin_to_key) ? boost::get<txin_to_key>(in).amount :
+	  in.type() == typeid(txin_onshore) ? boost::get<txin_onshore>(in).amount :
+	  in.type() == typeid(txin_offshore) ? boost::get<txin_offshore>(in).amount :
+	  boost::get<txin_xasset>(in).amount;
       }
     }
     BOOST_FOREACH(auto& o, tx.vout)
@@ -245,9 +255,12 @@ namespace cryptonote
           << in.type().name() << ", expected " << typeid(txin_to_key).name()
           << ", in transaction id=" << get_transaction_hash(tx));
       } else {
-        CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key) || in.type() == typeid(txin_offshore) || in.type() == typeid(txin_onshore), false, "wrong variant type: "
-          << in.type().name() << ", expected " << typeid(txin_to_key).name() << "or " << typeid(txin_onshore).name()
-          << ", in transaction id=" << get_transaction_hash(tx));
+	CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key) || in.type() == typeid(txin_offshore) || in.type() == typeid(txin_onshore) || in.type() == typeid(txin_xasset), false, "wrong variant type: "
+			     << in.type().name() << ", expected " << typeid(txin_to_key).name()
+			     << "or " << typeid(txin_offshore).name()
+			     << "or " << typeid(txin_onshore).name()
+			     << "or " << typeid(txin_xasset).name()
+			     << ", in transaction id=" << get_transaction_hash(tx));
       }
     }
     return true;
@@ -262,10 +275,13 @@ namespace cryptonote
           << out.target.type().name() << ", expected " << typeid(txout_to_key).name()
           << ", in transaction id=" << get_transaction_hash(tx));
       } else {
-        CHECK_AND_ASSERT_MES(out.target.type() == typeid(txout_to_key) || out.target.type() == typeid(txout_offshore), false, "wrong variant type: "
-          << out.target.type().name() << ", expected " << typeid(txout_to_key).name()
-	  << "or " << typeid(txout_offshore).name()
-	  << ", in transaction id=" << get_transaction_hash(tx));
+	CHECK_AND_ASSERT_MES(out.target.type() == typeid(txout_to_key) ||
+			     out.target.type() == typeid(txout_offshore) ||
+			     out.target.type() == typeid(txout_xasset), false, "wrong variant type: "
+			     << out.target.type().name() << ", expected " << typeid(txout_to_key).name()
+			     << "or " << typeid(txout_offshore).name()
+			     << "or " << typeid(txout_xasset).name()
+			     << ", in transaction id=" << get_transaction_hash(tx));
       }
 
       if (tx.version == 1)
@@ -277,7 +293,9 @@ namespace cryptonote
         if(!check_key(boost::get<txout_to_key>(out.target).key))
           return false;
       } else {
-        if(!check_key(out.target.type() == typeid(txout_to_key) ? boost::get<txout_to_key>(out.target).key : boost::get<txout_offshore>(out.target).key))
+	if(!check_key(out.target.type() == typeid(txout_to_key) ? boost::get<txout_to_key>(out.target).key :
+		      out.target.type() == typeid(txout_offshore) ? boost::get<txout_offshore>(out.target).key :
+		      boost::get<txout_xasset>(out.target).key))
           return false;
       }
     }
@@ -294,7 +312,12 @@ namespace cryptonote
     uint64_t money = 0;
     BOOST_FOREACH(const auto& in, tx.vin)
     {
-      if (tx.blob_type == BLOB_TYPE_CRYPTONOTE_XHV && tx.vin[0].type() == typeid(txin_offshore)) {
+      if (tx.blob_type == BLOB_TYPE_CRYPTONOTE_XHV && tx.vin[0].type() == typeid(txin_xasset)) {
+        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_xasset, tokey_in, false);
+        if(money > tokey_in.amount + money)
+          return false;
+        money += tokey_in.amount;
+      } else if (tx.blob_type == BLOB_TYPE_CRYPTONOTE_XHV && tx.vin[0].type() == typeid(txin_offshore)) {
         CHECKED_GET_SPECIFIC_VARIANT(in, const txin_offshore, tokey_in, false);
         if(money > tokey_in.amount + money)
           return false;
@@ -325,12 +348,32 @@ namespace cryptonote
     }
     return true;
   }
+  /*
   //---------------------------------------------------------------
   uint64_t get_outs_money_amount(const transaction& tx)
   {
     uint64_t outputs_amount = 0;
     BOOST_FOREACH(const auto& o, tx.vout)
       outputs_amount += o.amount;
+    return outputs_amount;
+  }
+  */
+  //---------------------------------------------------------------
+  std::map<std::string, uint64_t> get_outs_money_amount(const transaction& tx)
+  {
+    std::map<std::string, uint64_t> outputs_amount;
+    for(const auto& o: tx.vout) {
+      std::string asset_type;
+      if (o.target.type() == typeid(txout_offshore)) {
+        asset_type = "XUSD";
+      } else if (o.target.type() == typeid(txout_xasset)) {;
+        asset_type = boost::get<txout_xasset>(o.target).asset_type;
+      } else {
+        // this close covers miner tx and normal XHV ouputs.
+        asset_type = "XHV";
+      }
+      outputs_amount[asset_type] += o.amount;
+    }
     return outputs_amount;
   }
   //---------------------------------------------------------------
@@ -451,6 +494,7 @@ namespace cryptonote
 	t.vin[0].type() == typeid(txin_to_key) ? boost::get<txin_to_key>(t.vin[0]).key_offsets.size() - 1 :
 	t.vin[0].type() == typeid(txin_offshore) ? boost::get<txin_offshore>(t.vin[0]).key_offsets.size() - 1 :
 	t.vin[0].type() == typeid(txin_onshore) ? boost::get<txin_onshore>(t.vin[0]).key_offsets.size() - 1 :
+	t.vin[0].type() == typeid(txin_xasset) ? boost::get<txin_xasset>(t.vin[0]).key_offsets.size() - 1 :
 	0;
       }
       bool r = tt.rct_signatures.p.serialize_rctsig_prunable(ba, t.rct_signatures.type, inputs, outputs, mixin);
