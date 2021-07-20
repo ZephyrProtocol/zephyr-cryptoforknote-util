@@ -190,3 +190,13 @@ module.exports.EthBlockTemplate = function(rpcData) {
     height:             parseInt(rpcData[3])
   };
 };
+
+module.exports.ErgBlockTemplate = function(rpcData) {
+  const difficulty = module.exports.baseDiff().div(bignum(rpcData.b)).toNumber();
+  return {
+    hash:               rpcData.msg,
+    hash2:              rpcData.pk,
+    difficulty:         difficulty,
+    height:             parseInt(rpcData.h)
+  };
+};
