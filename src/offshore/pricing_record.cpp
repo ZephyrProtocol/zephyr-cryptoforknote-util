@@ -29,17 +29,6 @@
 
 #include "pricing_record.h"
 
-#include <cstring>
-
-#include <openssl/bio.h>
-#include <openssl/crypto.h>
-#include <openssl/ecdsa.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/pem.h>
-#include <openssl/rsa.h>
-#include <openssl/ssl.h>
-
 #include "serialization/keyvalue_serialization.h"
 #include "storages/portable_storage.h"
 
@@ -66,6 +55,7 @@ namespace offshore
       uint64_t unused1;
       uint64_t unused2;
       uint64_t unused3;
+      uint64_t timestamp;
       std::string signature;
 
       BEGIN_KV_SERIALIZE_MAP()
@@ -85,6 +75,7 @@ namespace offshore
         KV_SERIALIZE(unused1)
         KV_SERIALIZE(unused2)
         KV_SERIALIZE(unused3)
+        KV_SERIALIZE(timestamp)
         KV_SERIALIZE(signature)
       END_KV_SERIALIZE_MAP()
     };
@@ -107,6 +98,7 @@ namespace offshore
     , unused1(0)
     , unused2(0)
     , unused3(0)
+    , timestamp(0)
   {
     std::memset(signature, 0, sizeof(signature));
   }
@@ -133,6 +125,7 @@ namespace offshore
       unused1 = in.unused1;
       unused2 = in.unused2;
       unused3 = in.unused3;
+      timestamp = in.timestamp;
       for (unsigned int i = 0; i < in.signature.length(); i += 2) {
 	std::string byteString = in.signature.substr(i, 2);
 	signature[i>>1] = (char) strtol(byteString.c_str(), NULL, 16);
@@ -152,7 +145,7 @@ namespace offshore
       ss << std::hex << std::setw(2) << std::setfill('0') << (0xff & signature[i]);
       sig_hex += ss.str();
     }
-    const pr_serialized out{xAG,xAU,xAUD,xBTC,xCAD,xCHF,xCNY,xEUR,xGBP,xJPY,xNOK,xNZD,xUSD,unused1,unused2,unused3,sig_hex};
+    const pr_serialized out{xAG,xAU,xAUD,xBTC,xCAD,xCHF,xCNY,xEUR,xGBP,xJPY,xNOK,xNZD,xUSD,unused1,unused2,unused3,timestamp,sig_hex};
     return out.store(dest, hparent);
   }
 
@@ -173,6 +166,7 @@ namespace offshore
     , unused1(orig.unused1)
     , unused2(orig.unused2)
     , unused3(orig.unused3)
+    , timestamp(orig.timestamp)
   {
     std::memcpy(signature, orig.signature, sizeof(signature));
   }
@@ -195,10 +189,46 @@ namespace offshore
     unused1 = orig.unused1;
     unused2 = orig.unused2;
     unused3 = orig.unused3;
+    timestamp = orig.timestamp;
     ::memcpy(signature, orig.signature, sizeof(signature));
     return *this;
   }
 
+  uint64_t pricing_record::operator[](const std::string asset_type) const
+  {
+    if (asset_type == "XHV") {
+      return 1000000000000;
+    } else if (asset_type == "XUSD") {
+      return unused1;
+    } else if (asset_type == "XAG") {
+      return xAG;
+    } else if (asset_type == "XAU") {
+      return xAU;
+    } else if (asset_type == "XAUD") {
+      return xAUD;
+    } else if (asset_type == "XBTC") {
+      return xBTC;
+    } else if (asset_type == "XCAD") {
+      return xCAD;
+    } else if (asset_type == "XCHF") {
+      return xCHF;
+    } else if (asset_type == "XCNY") {
+      return xCNY;
+    } else if (asset_type == "XEUR") {
+      return xEUR;
+    } else if (asset_type == "XGBP") {
+      return xGBP;
+    } else if (asset_type == "XJPY") {
+      return xJPY;
+    } else if (asset_type == "XNOK") {
+      return xNOK;
+    } else if (asset_type == "XNZD") {
+      return xNZD;
+    } else {
+     CHECK_AND_ASSERT_THROW_MES(false, "Asset type doesn't exist in pricing record!");
+    }
+  }
+  
   bool pricing_record::equal(const pricing_record& other) const noexcept
   {
     return ((xAG == other.xAG) &&
@@ -217,19 +247,22 @@ namespace offshore
 	    (unused1 == other.unused1) &&
 	    (unused2 == other.unused2) &&
 	    (unused3 == other.unused3) &&
+	    (timestamp == other.timestamp) &&
 	    !::memcmp(signature, other.signature, sizeof(signature)));
   }
 
+  bool pricing_record::is_empty() const noexcept
+  {
+    const pricing_record empty_pr = offshore::pricing_record();
+    return (*this).equal(empty_pr);
+  }
 
-  bool pricing_record::verifySignature() const noexcept
+  bool pricing_record::verifySignature(EVP_PKEY* public_key) const noexcept
   {
     // Sanity check - accept empty pricing records
-    unsigned char test_sig[64];
-    std::memset(test_sig, 0, sizeof(test_sig));
-    if (std::memcmp(test_sig, signature, sizeof(signature)) == 0) {
+    if ((*this).is_empty())
       return true;
-    }
-    
+
     // Convert our internal 64-byte binary representation into 128-byte hex string
     std::string sig_hex;
     for (unsigned int i=0; i<64; i++) {
@@ -284,6 +317,8 @@ namespace offshore
     oss << ",\"unused1\":" << unused1;
     oss << ",\"unused2\":" << unused2;
     oss << ",\"unused3\":" << unused3;
+    if (timestamp > 0)
+      oss << ",\"timestamp\":" << timestamp;
     oss << "}";
     std::string message = oss.str();    
 
@@ -295,19 +330,28 @@ namespace offshore
       compact += (byte);
     }
 
-    // HERE BE DRAGONS!!!
-    // NEAC: the public key should be in a file
-    static const char public_key[] = "-----BEGIN PUBLIC KEY-----\n"
-      "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE5YBxWx1AZCA9jTUk8Pr2uZ9jpfRt\n"
-      "KWv3Vo1/Gny+1vfaxsXhBQiG1KlHkafNGarzoL0WHW4ocqaaqF5iv8i35A==\n"
-      "-----END PUBLIC KEY-----\n";
-    // LAND AHOY!!!
+    // Check to see if we have been passed a public key to use
+    EVP_PKEY* pubkey = NULL;
+    if (public_key) {
+
+      // Take a copy for local use
+      pubkey = public_key;
+      
+    } else {
+      
+      // No public key provided - failover to embedded key
+      static const char public_key[] = "-----BEGIN PUBLIC KEY-----\n"
+	"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE5YBxWx1AZCA9jTUk8Pr2uZ9jpfRt\n"
+	"KWv3Vo1/Gny+1vfaxsXhBQiG1KlHkafNGarzoL0WHW4ocqaaqF5iv8i35A==\n"
+	"-----END PUBLIC KEY-----\n";
     
-    // Grab the public key and make it usable
-    BIO* bio = BIO_new_mem_buf(public_key, (int)sizeof(public_key));
-    assert(bio != NULL);
-    EVP_PKEY* pubkey = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
-    BIO_free(bio);
+      BIO* bio = BIO_new_mem_buf(public_key, (int)sizeof(public_key));
+      if (!bio) {
+	return false;
+      }
+      pubkey = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
+      BIO_free(bio);
+    }
     assert(pubkey != NULL);
 
     // Create a verify digest from the message
@@ -325,9 +369,12 @@ namespace offshore
     // Cleanup the context we created
     EVP_MD_CTX_destroy(ctx);
 
-    // Cleanup the openssl stuff
-    EVP_PKEY_free(pubkey);
-  
+    // Was the key provided by the caller?
+    if (pubkey != public_key) {
+      // Cleanup the openssl stuff
+      EVP_PKEY_free(pubkey);
+    }
+    
     if (ret == 1)
       return true;
 
