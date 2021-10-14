@@ -273,7 +273,8 @@ namespace cryptonote
       }
       if (blob_type == BLOB_TYPE_CRYPTONOTE_XHV && version >= OFFSHORE_TRANSACTION_VERSION) {
         VARINT_FIELD(pricing_record_height)
-        FIELD(offshore_data)
+        if (version < 5)
+          FIELD(offshore_data)
         VARINT_FIELD(amount_burnt)
         VARINT_FIELD(amount_minted)
       }

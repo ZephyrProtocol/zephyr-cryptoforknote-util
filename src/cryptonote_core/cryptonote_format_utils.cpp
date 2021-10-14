@@ -85,25 +85,39 @@ namespace cryptonote
   {
     uint64_t amount_in = 0;
     uint64_t amount_out = 0;
-    if ((tx.blob_type == BLOB_TYPE_CRYPTONOTE_XHV) && (tx.version > 1))
+    if (tx.blob_type == BLOB_TYPE_CRYPTONOTE_XHV)
     {
       // This is the correct way to get the fee for Haven, because outs may be in different currencies to ins
-      fee = tx.rct_signatures.txnFee + tx.rct_signatures.txnOffshoreFee;
+      switch (tx.version) {
+      case 5:
+        fee = tx.rct_signatures.txnFee + tx.rct_signatures.txnOffshoreFee;
+        break;
+      case 4:
+      case 3:
+        if (tx.vin[0].type() == typeid(txin_to_key)) {
+          fee = tx.rct_signatures.txnFee + tx.rct_signatures.txnOffshoreFee;
+        } else if (tx.vin[0].type() == typeid(txin_offshore)) {
+          fee = tx.rct_signatures.txnFee_usd + tx.rct_signatures.txnOffshoreFee_usd;
+        } else if (tx.vin[0].type() == typeid(txin_onshore)) {
+          fee = tx.rct_signatures.txnFee_usd + tx.rct_signatures.txnOffshoreFee_usd;
+        } else if (tx.vin[0].type() == typeid(txin_xasset)) {
+          fee = tx.rct_signatures.txnFee_xasset + tx.rct_signatures.txnOffshoreFee_xasset;
+        } else {
+          CHECK_AND_ASSERT_MES(false, false, "unexpected type id in transaction");
+          return false;
+        }
+        break;
+      case 2:
+      case 1:
+        fee = tx.rct_signatures.txnFee;
+        break;
+      }
       return true;
     }
     BOOST_FOREACH(auto& in, tx.vin)
     {
-      if (tx.blob_type != BLOB_TYPE_CRYPTONOTE_XHV) {
-        CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key), 0, "unexpected type id in transaction");
-        amount_in += boost::get<txin_to_key>(in).amount;
-      } else {
-        CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key) || in.type() == typeid(txin_offshore) || in.type() == typeid(txin_onshore) || in.type() == typeid(txin_xasset), 0, "unexpected type id in transaction");
-        amount_in +=
-	  in.type() == typeid(txin_to_key) ? boost::get<txin_to_key>(in).amount :
-	  in.type() == typeid(txin_onshore) ? boost::get<txin_onshore>(in).amount :
-	  in.type() == typeid(txin_offshore) ? boost::get<txin_offshore>(in).amount :
-	  boost::get<txin_xasset>(in).amount;
-      }
+      CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key), 0, "unexpected type id in transaction");
+      amount_in += boost::get<txin_to_key>(in).amount;
     }
     BOOST_FOREACH(auto& o, tx.vout)
       amount_out += o.amount;

@@ -42,6 +42,8 @@
 #include <cstdint>
 #include <string>
 #include <cstring>
+#include "cryptonote_config.h"
+#include "crypto/hash.h"
 
 namespace epee
 {
@@ -80,9 +82,61 @@ namespace offshore
   class pricing_record
   {
 
-  public:
+    public:
 
-    // Fields 
+      // Fields 
+      uint64_t xAG;
+      uint64_t xAU;
+      uint64_t xAUD;
+      uint64_t xBTC;
+      uint64_t xCAD;
+      uint64_t xCHF;
+      uint64_t xCNY;
+      uint64_t xEUR;
+      uint64_t xGBP;
+      uint64_t xJPY;
+      uint64_t xNOK;
+      uint64_t xNZD;
+      uint64_t xUSD;
+      uint64_t unused1;
+      uint64_t unused2;
+      uint64_t unused3;
+      uint64_t timestamp;
+      unsigned char signature[64];
+
+      // Default c'tor
+      pricing_record() noexcept;
+      //! Load from epee p2p format
+      bool _load(epee::serialization::portable_storage& src, epee::serialization::section* hparent);
+      //! Store in epee p2p format
+      bool store(epee::serialization::portable_storage& dest, epee::serialization::section* hparent) const;
+      pricing_record(const pricing_record& orig) noexcept;
+      ~pricing_record() = default;
+      void set_for_height_821428();
+      bool equal(const pricing_record& other) const noexcept;
+      bool empty() const noexcept;
+      bool verifySignature() const;
+      bool valid(uint32_t hf_version, uint64_t bl_timestamp, uint64_t last_bl_timestamp) const;
+
+      pricing_record& operator=(const pricing_record& orig) noexcept;
+      uint64_t operator[](const std::string& asset_type) const;
+  };
+
+  inline bool operator==(const pricing_record& a, const pricing_record& b) noexcept
+  {
+   return a.equal(b);
+  }
+  
+  inline bool operator!=(const pricing_record& a, const pricing_record& b) noexcept
+  {
+   return !a.equal(b);
+  }
+
+  // did not have a timestamp
+  class pricing_record_v1
+  {
+
+  public:
     uint64_t xAG;
     uint64_t xAU;
     uint64_t xAUD;
@@ -102,36 +156,51 @@ namespace offshore
     uint64_t timestamp;
     unsigned char signature[64];
 
-    // Default c'tor
-    pricing_record() noexcept;
-    
-    //! Load from epee p2p format
-    bool _load(epee::serialization::portable_storage& src, epee::serialization::section* hparent);
-    
-    //! Store in epee p2p format
-    bool store(epee::serialization::portable_storage& dest, epee::serialization::section* hparent) const;
-    pricing_record(const pricing_record& orig) noexcept;
-    ~pricing_record() = default;
-    pricing_record& operator=(const pricing_record& orig) noexcept;
+    bool write_to_pr(offshore::pricing_record &pr)
+    {
+      pr.xAG = xAG;
+      pr.xAU = xAU;
+      pr.xAUD = xAUD;
+      pr.xBTC = xBTC;
+      pr.xCAD = xCAD;
+      pr.xCHF = xCHF;
+      pr.xCNY = xCNY;
+      pr.xEUR = xEUR;
+      pr.xGBP = xGBP;
+      pr.xJPY = xJPY;
+      pr.xNOK = xNOK;
+      pr.xNZD = xNZD;
+      pr.xUSD = xUSD;
+      pr.unused1 = unused1;
+      pr.unused2 = unused2;
+      pr.unused3 = unused3;
+      pr.timestamp = 0;
+      ::memcpy(pr.signature, signature, sizeof(pr.signature));
+      return true;
+    };
 
-    uint64_t operator[](const std::string asset_type) const;
-    
-    bool equal(const pricing_record& other) const noexcept;
-
-    bool is_empty() const noexcept;
-
-    bool verifySignature(EVP_PKEY* public_key = NULL) const noexcept;
+    bool read_from_pr(offshore::pricing_record &pr)
+    {
+      xAG = pr.xAG;
+      xAU = pr.xAU;
+      xAUD = pr.xAUD;
+      xBTC = pr.xBTC;
+      xCAD = pr.xCAD;
+      xCHF = pr.xCHF;
+      xCNY = pr.xCNY;
+      xEUR = pr.xEUR;
+      xGBP = pr.xGBP;
+      xJPY = pr.xJPY;
+      xNOK = pr.xNOK;
+      xNZD = pr.xNZD;
+      xUSD = pr.xUSD;
+      unused1 = pr.unused1;
+      unused2 = pr.unused2;
+      unused3 = pr.unused3;
+      ::memcpy(signature, pr.signature, sizeof(signature));
+      return true;
+    };
   };
-
-  inline bool operator==(const pricing_record& a, const pricing_record& b) noexcept
-  {
-   return a.equal(b);
-  }
-  
-  inline bool operator!=(const pricing_record& a, const pricing_record& b) noexcept
-  {
-   return !a.equal(b);
-  }
 
   // did not have a timestamp
   class pricing_record_v1
