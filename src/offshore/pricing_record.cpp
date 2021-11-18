@@ -295,6 +295,7 @@ namespace offshore
     BIO_free(bio);
     CHECK_AND_ASSERT_THROW_MES(pubkey != NULL, "Pricing record verification failed. NULL public key.");
 
+
     // Convert our internal 64-byte binary representation into 128-byte hex string
     std::string sig_hex;
     for (unsigned int i=0; i<64; i++) {
