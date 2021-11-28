@@ -7,6 +7,8 @@ const varuint = require('varuint-bitcoin');
 const crypto  = require('crypto');
 const fastMerkleRoot = require('merkle-lib/fastRoot');
 
+const rtm = require('rtm');
+
 function scriptCompile(addrHash) {
   return bitcoin.script.compile([
     bitcoin.opcodes.OP_DUP,
@@ -199,4 +201,8 @@ module.exports.ErgBlockTemplate = function(rpcData) {
     difficulty:         difficulty,
     height:             parseInt(rpcData.h)
   };
+};
+
+module.exports.RtmBlockTemplate = function(rpcData, poolAddress) {
+  return rtm.RtmBlockTemplate(rpcData, poolAddress);
 };
