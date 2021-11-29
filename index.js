@@ -206,3 +206,7 @@ module.exports.ErgBlockTemplate = function(rpcData) {
 module.exports.RtmBlockTemplate = function(rpcData, poolAddress) {
   return rtm.RtmBlockTemplate(rpcData, poolAddress);
 };
+
+module.exports.RtmPreHashingBlob = function(bt, nonce1) {
+  return rtm.RtmPreHashingBlob(bt, nonce1);
+};

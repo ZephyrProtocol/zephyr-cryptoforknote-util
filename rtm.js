@@ -1,3 +1,308 @@
+const crypto = require('crypto');
+const bignum = require('bignum');
+const base58 = require('base58-native');
+
+const diff1 = 0x00000000ffff0000000000000000000000000000000000000000000000000000;
+
+function reverseBuffer(buff) {
+  let reversed = Buffer.alloc(buff.length);
+  for (let i = buff.length - 1; i >= 0; i--) reversed[buff.length - i - 1] = buff[i];
+  return reversed;
+}
+
+function reverseByteOrder(buff) {
+  for (let i = 0; i < 8; i++) buff.writeUInt32LE(buff.readUInt32BE(i * 4), i * 4);
+  return reverseBuffer(buff);
+}
+
+function packInt32BE(num) {
+  let buff = Buffer.alloc(4);
+  buff.writeInt32BE(num, 0);
+  return buff;
+}
+
+function packUInt16LE(num) {
+  let buff = Buffer.alloc(2);
+  buff.writeUInt16LE(num, 0);
+  return buff;
+}
+
+function packUInt32LE(num) {
+  let buff = Buffer.alloc(4);
+  buff.writeUInt32LE(num, 0);
+  return buff;
+}
+
+function packUInt32BE(num) {
+  let buff = Buffer.alloc(4);
+  buff.writeUInt32BE(num, 0);
+  return buff;
+}
+
+function packInt64LE(num){
+  let buff = Buffer.alloc(8);
+  buff.writeUInt32LE(num % Math.pow(2, 32), 0);
+  buff.writeUInt32LE(Math.floor(num / Math.pow(2, 32)), 4);
+  return buff;
+}
+
+// Defined in bitcoin protocol here:
+// https://en.bitcoin.it/wiki/Protocol_specification#Variable_length_integer
+function varIntBuffer(n) {
+  if (n < 0xfd) {
+    return Buffer.from([n]);
+  } else if (n <= 0xffff) {
+    let buff = Buffer.alloc(3);
+    buff[0] = 0xfd;
+    buff.writeUInt16LE(n, 1);
+    return buff;
+  } else if (n <= 0xffffffff) {
+    let buff = Buffer.alloc(5);
+    buff[0] = 0xfe;
+    buff.writeUInt32LE(n, 1);
+    return buff;
+  } else{
+    let buff = Buffer.alloc(9);
+    buff[0] = 0xff;
+    packUInt16LE(n).copy(buff, 1);
+    return buff;
+  }
+}
+
+// "serialized CScript" formatting as defined here:
+// https://github.com/bitcoin/bips/blob/master/bip-0034.mediawiki#specification
+// Used to format height and date when putting into script signature:
+// https://en.bitcoin.it/wiki/Script
+function serializeNumber(n) {
+  // New version from TheSeven
+  if (n >= 1 && n <= 16) return Buffer.from([0x50 + n]);
+  var l = 1;
+  var buff = Buffer.alloc(9);
+  while (n > 0x7f) {
+      buff.writeUInt8(n & 0xff, l++);
+      n >>= 8;
+  }
+  buff.writeUInt8(l, 0);
+  buff.writeUInt8(n, l++);
+  return buff.slice(0, l);
+}
+
+// Used for serializing strings used in script signature
+function serializeString(s) {
+  if (s.length < 253) {
+    return Buffer.concat([ Buffer.from([s.length]), Buffer.from(s) ]);
+  } else if (s.length < 0x10000) {
+    return Buffer.concat([ Buffer.from([253]), packUInt16LE(s.length), Buffer.from(s) ]);
+  } else if (s.length < 0x100000000) {
+    return Buffer.concat([ Buffer.from([254]), packUInt32LE(s.length), Buffer.from(s) ]);
+  } else {
+    return Buffer.concat([ Buffer.from([255]), packUInt16LE(s.length), Buffer.from(s) ]);
+  }
+}
+
+function sha256(buffer) {
+  let hash1 = crypto.createHash('sha256');
+  hash1.update(buffer);
+  return hash1.digest();
+}
+
+function sha256d(buffer) {
+  return sha256(sha256(buffer));
+}
+
+// An exact copy of python's range feature. Written by Tadeck:
+// http://stackoverflow.com/a/8273091
+function range(start, stop, step) {
+  if (typeof stop === 'undefined') {
+    stop = start;
+    start = 0;
+  }
+  if (typeof step === 'undefined') {
+    step = 1;
+  }
+  if ((step > 0 && start >= stop) || (step < 0 && start <= stop)) {
+    return [];
+  }
+  let result = [];
+  for (let i = start; step > 0 ? i < stop : i > stop; i += step) {
+    result.push(i);
+  }
+  return result;
+}
+
+function merkleJoin(h1, h2) {
+  let joined = Buffer.concat([h1, h2]);
+  let dhashed = sha256d(joined);
+  return dhashed;
+}
+
+function merkleTreeBranches(data) {
+  let L = data;
+  let steps = [];
+  let PreL = [null];
+  let StartL = 2;
+  let Ll = L.length;
+
+  if (Ll > 1) {
+    while (true) {
+      if (Ll === 1) break;
+      steps.push(L[1].toString('hex'));
+      if (Ll % 2) L.push(L[L.length - 1]);
+      let Ld = [];
+      let r = range(StartL, Ll, 2);
+      r.forEach(function(i) {
+        Ld.push(merkleJoin(L[i], L[i + 1]));
+      });
+      L = PreL.concat(Ld);
+      Ll = L.length;
+    }
+  }
+  return steps;
+}
+
+function uint256BufferFromHash(hex) {
+  let fromHex = Buffer.from(hex, 'hex');
+  if (fromHex.length != 32) {
+    let empty = Buffer.alloc(32);
+    empty.fill(0);
+    fromHex.copy(empty);
+    fromHex = empty;
+  }
+  return reverseBuffer(fromHex);
+}
+
+function getTransactionBuffers(txs) {
+  let txHashes = txs.map(function(tx) {
+    if (tx.txid !== undefined) {
+      return uint256BufferFromHash(tx.txid);
+    }
+    return uint256BufferFromHash(tx.hash);
+  });
+  return [null].concat(txHashes);
+}
+
+function addressToScript(addr) {
+  const decoded = base58.decode(addr);
+  if (decoded.length != 25)  throw new Error('Invalid address length for ' + addr);
+  if (!decoded) throw new Error('Base58 decode failed for ' + addr);
+  const pubkey = decoded.slice(1, -4);
+  return Buffer.concat([Buffer.from([0x76, 0xa9, 0x14]), pubkey, Buffer.from([0x88, 0xac])]);
+}
+
+function createOutputTransaction(amount, payee, rewardToPool, reward, txOutputBuffers, payeeScript) {
+  const payeeReward = amount;
+  if (!payeeScript) payeeScript = addressToScript(payee);
+  txOutputBuffers.push(Buffer.concat([
+    packInt64LE(payeeReward),
+    varIntBuffer(payeeScript.length),
+    payeeScript
+  ]));
+  return { reward: reward - amount, rewardToPool: rewardToPool - amount };
+}
+
+function generateOutputTransactions(rpcData, poolAddress) {
+  let reward       = rpcData.coinbasevalue;
+  let rewardToPool = reward;
+  let txOutputBuffers = [];
+
+  if (rpcData.smartnode) {
+    if (rpcData.smartnode.payee) {
+      const rewards = createOutputTransaction(rpcData.smartnode.amount, rpcData.smartnode.payee, rewardToPool, reward, txOutputBuffers);
+      reward        = rewards.reward;
+      rewardToPool  = rewards.rewardToPool;
+    } else if (Array.isArray(rpcData.smartnode)) {
+      for (let i in rpcData.smartnode) {
+        const rewards = createOutputTransaction(rpcData.smartnode[i].amount, rpcData.smartnode[i].payee, rewardToPool, reward, txOutputBuffers);
+	reward        = rewards.reward;
+        rewardToPool  = rewards.rewardToPool;
+      }
+    } 
+  }
+
+  if (rpcData.superblock) {
+    for (let i in rpcData.superblock) {
+      const rewards = createOutputTransaction(rpcData.superblock[i].amount, rpcData.superblock[i].payee, rewardToPool, reward, txOutputBuffers);
+      reward        = rewards.reward;
+      rewardToPool  = rewards.rewardToPool;
+    }
+  }
+
+  if (rpcData.founder_payments_started && rpcData.founder) {
+    const founderReward = rpcData.founder.amount || 0;
+    const rewards = createOutputTransaction(founderReward, rpcData.founder.payee, rewardToPool, reward, txOutputBuffers);
+    reward        = rewards.reward;
+    rewardToPool  = rewards.rewardToPool;
+  }
+
+  createOutputTransaction(rewardToPool, null, rewardToPool, reward, txOutputBuffers, Buffer.from(addressToScript(poolAddress), "hex"));
+
+  if (rpcData.default_witness_commitment !== undefined) {
+    const witness_commitment = Buffer.from(rpcData.default_witness_commitment, 'hex');
+    txOutputBuffers.unshift(Buffer.concat([
+      packInt64LE(0),
+      varIntBuffer(witness_commitment.length),
+      witness_commitment
+    ]));
+  }
+
+  return {
+    reward: rewardToPool,
+    buff: Buffer.concat([ varIntBuffer(txOutputBuffers.length), Buffer.concat(txOutputBuffers)])
+  };
+}
+
 module.exports.RtmBlockTemplate = function(rpcData, poolAddress) {
-  return {};
-};
+  const extraNoncePlaceholderLength = 8;
+  const coinbaseVersion = Buffer.concat([packUInt16LE(3), packUInt16LE(5)]);
+
+  const scriptSigPart1 = Buffer.concat([
+    serializeNumber(rpcData.height),
+    Buffer.from(rpcData.coinbaseaux.flags, 'hex'),
+    serializeNumber(Date.now() / 1000 | 0),
+    Buffer.from([extraNoncePlaceholderLength])
+  ]);
+
+  const scriptSigPart2 = serializeString('/nodeStratum/');
+
+  const out = generateOutputTransactions(rpcData, poolAddress);
+
+  const blob1 = Buffer.concat([
+    coinbaseVersion,
+    // transaction input
+    varIntBuffer(1), // txInputsCount
+    uint256BufferFromHash(""), // txInPrevOutHash
+    packUInt32LE(Math.pow(2, 32) - 1), // txInPrevOutIndex
+    varIntBuffer(scriptSigPart1.length + extraNoncePlaceholderLength + scriptSigPart2.length),
+    scriptSigPart1
+  ]);
+
+  let blob2 = Buffer.concat([
+    scriptSigPart2,
+    packUInt32LE(0), // txInSequence
+    // end transaction input
+    // transaction output
+    out.buff,
+    // end transaction ouput
+    packUInt32LE(0), // txLockTime
+    varIntBuffer(rpcData.coinbase_payload.length / 2),
+    Buffer.from(rpcData.coinbase_payload, 'hex')
+  ]);
+
+  return {
+    reward:             out.reward,
+    difficulty:         parseFloat((diff1 / bignum(rpcData.target, 16).toNumber()).toFixed(9)),
+    prev_hash:          reverseByteOrder(Buffer.from(rpcData.previousblockhash, 'hex')).toString('hex'),
+    blob1:              blob1.toString('hex'),
+    blob2:              blob2.toString('hex'),
+    merkle_branches:    merkleTreeBranches(getTransactionBuffers(rpcData.transactions)),
+    version:            packInt32BE(rpcData.version).toString('hex'),
+    nbits:              rpcData.bits,
+    ntime:              packUInt32BE(rpcData.curtime).toString('hex'),
+  }
+}
+
+module.exports.RtmPreHashingBlob = function(bt, nonce1) {
+  let merkle_root = sha256d(Buffer.from(bt.blob1 + nonce1.toString('hex') + "00000000" + bt.blob2));
+  bt.merkle_branches.forEach(function(branch) { merkle_root = merkleJoin(merkle_root, Buffer.from(branch, 'hex')); });
+  return Buffer.from(bt.version + bt.prev_hash + merkle_root.toString('hex') + bt.ntime + bt.ntime, 'hex');
+}
