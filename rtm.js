@@ -252,15 +252,15 @@ module.exports.RtmBlockTemplate = function(rpcData, poolAddress) {
   const curtime = packUInt32LE(rpcData.curtime).toString('hex');
   let bits    = Buffer.from(rpcData.bits, 'hex');
   bits.writeUInt32LE(bits.readUInt32BE());
+  const txn = varIntBuffer(rpcData.transactions.length + 1);
 
   return {
     difficulty:         parseFloat((diff1 / bignum(rpcData.target, 16).toNumber()).toFixed(9)),
     height:             rpcData.height,
     prev_hash:          rpcData.previousblockhash,
     blocktemplate_blob: version + rpcData.previousblockhash + Buffer.alloc(32, 0).toString('hex') + curtime + bits.toString('hex') + Buffer.alloc(4, 0).toString('hex') +
-                        varIntBuffer(rpcData.transactions.length + 1).toString('hex') +
-                        blob1.toString('hex') + Buffer.alloc(extraNoncePlaceholderLength, 0xCC).toString('hex') + blob2.toString('hex') +
+                        txn.toString('hex') + blob1.toString('hex') + Buffer.alloc(extraNoncePlaceholderLength, 0xCC).toString('hex') + blob2.toString('hex') +
                         Buffer.concat(rpcData.transactions.map(function(tx) { return Buffer.from(tx.data, 'hex'); })).toString('hex'),
-    reserved_offset:    80 + 4 + 1 + blob1.length
+    reserved_offset:    80 + txn.length + blob1.length
   }
 }
