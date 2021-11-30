@@ -87,7 +87,7 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
       // will be used for our reserved_offset extra_nonce
       Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'),
       0xFFFFFFFF, 0xFFFFFFFF,
-      Buffer.concat([serializedBlockHeight, Buffer('CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', 'hex')]) // 17 bytes
+      Buffer.concat([serializedBlockHeight, Buffer.alloc(17, 0xCC)]) // 17 bytes
     );
 
     txCoinbase.addOutput(scriptCompile(poolAddrHash), Math.floor(rpcData.coinbasevalue));
@@ -152,27 +152,28 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
   };
 };
 
-function update_merkle_root_hash(blob_in, blob_out) {
-  let offset = 80 + 8 + 32;
+function update_merkle_root_hash(offset, payload, blob_in, blob_out) {
   const nTransactions = varuint.decode(blob_in, offset);
+  console.log("2x" + nTransactions);
   offset += varuint.decode.bytes;
   let transactions = [];
   for (let i = 0; i < nTransactions; ++i) {
-    const tx = bitcoin.Transaction.fromBuffer(blob_in.slice(offset), true);
+    const tx = bitcoin.Transaction.fromBuffer(blob_in.slice(offset), true, payload && i == 0);
     transactions.push(tx);
     offset += tx.byteLength();
+    console.log("2xx " + tx.byteLength());
   }
   getMerkleRoot(transactions).copy(blob_out, 4 + 32);
 };
 
 module.exports.convertRavenBlob = function(blobBuffer) {
   let header = blobBuffer.slice(0, 80);
-  update_merkle_root_hash(blobBuffer, header);
+  update_merkle_root_hash(80 + 8 + 32, false, blobBuffer, header);
   return reverseBuffer(hash256(header));
 };
 
 module.exports.constructNewRavenBlob = function(blockTemplate, nonceBuff, mixhashBuff) {
-  update_merkle_root_hash(blockTemplate, blockTemplate);
+  update_merkle_root_hash(80 + 8 + 32, false, blockTemplate, blockTemplate);
   nonceBuff.copy  (blockTemplate, 80, 0, 8);
   mixhashBuff.copy(blockTemplate, 88, 0, 32);
   return blockTemplate;
@@ -207,10 +208,14 @@ module.exports.RtmBlockTemplate = function(rpcData, poolAddress) {
   return rtm.RtmBlockTemplate(rpcData, poolAddress);
 };
 
-module.exports.convertRtmBlob = function(buffer) {
-  return rtm.convertRtmBlob(buffer);
+module.exports.convertRtmBlob = function(blobBuffer) {
+  let header = blobBuffer.slice(0, 80);
+  update_merkle_root_hash(80, true, blobBuffer, header);
+  return header;
 };
 
 module.exports.constructNewRtmBlob = function(blockTemplate, nonceBuff) {
-  return rtm.constructNewRtmBlob(blockTemplate, nonceBuff);
+  update_merkle_root_hash(80, true, blockTemplate, blockTemplate);
+  nonceBuff.copy(blockTemplate, 76, 0, 4);
+  return blockTemplate;
 };

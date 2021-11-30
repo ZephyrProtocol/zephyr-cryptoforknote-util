@@ -1,4 +1,3 @@
-const crypto = require('crypto');
 const bignum = require('bignum');
 const base58 = require('base58-native');
 
@@ -106,16 +105,6 @@ function serializeString(s) {
   }
 }
 
-function sha256(buffer) {
-  let hash1 = crypto.createHash('sha256');
-  hash1.update(buffer);
-  return hash1.digest();
-}
-
-function sha256d(buffer) {
-  return sha256(sha256(buffer));
-}
-
 // An exact copy of python's range feature. Written by Tadeck:
 // http://stackoverflow.com/a/8273091
 function range(start, stop, step) {
@@ -134,36 +123,6 @@ function range(start, stop, step) {
     result.push(i);
   }
   return result;
-}
-
-function merkleJoin(h1, h2) {
-  let joined = Buffer.concat([h1, h2]);
-  let dhashed = sha256d(joined);
-  return dhashed;
-}
-
-function merkleTreeBranches(data) {
-  let L = data;
-  let steps = [];
-  let PreL = [null];
-  let StartL = 2;
-  let Ll = L.length;
-
-  if (Ll > 1) {
-    while (true) {
-      if (Ll === 1) break;
-      steps.push(L[1]);
-      if (Ll % 2) L.push(L[L.length - 1]);
-      let Ld = [];
-      let r = range(StartL, Ll, 2);
-      r.forEach(function(i) {
-        Ld.push(merkleJoin(L[i], L[i + 1]));
-      });
-      L = PreL.concat(Ld);
-      Ll = L.length;
-    }
-  }
-  return steps;
 }
 
 function uint256BufferFromHash(hex) {
@@ -255,7 +214,7 @@ function generateOutputTransactions(rpcData, poolAddress) {
 }
 
 module.exports.RtmBlockTemplate = function(rpcData, poolAddress) {
-  const extraNoncePlaceholderLength = 16;
+  const extraNoncePlaceholderLength = 17;
   const coinbaseVersion = Buffer.concat([packUInt16LE(3), packUInt16LE(5)]);
 
   const scriptSigPart1 = Buffer.concat([
@@ -294,29 +253,16 @@ module.exports.RtmBlockTemplate = function(rpcData, poolAddress) {
   let bits    = Buffer.from(rpcData.bits, 'hex');
   bits.writeUInt32LE(bits.readUInt32BE());
 
+  console.log("1x" + (rpcData.transactions.length + 1) + " " + (blob1.length + extraNoncePlaceholderLength + blob2.length));
+
   return {
     difficulty:         parseFloat((diff1 / bignum(rpcData.target, 16).toNumber()).toFixed(9)),
     height:             rpcData.height,
     prev_hash:          rpcData.previousblockhash,
     blocktemplate_blob: version + rpcData.previousblockhash + Buffer.alloc(32, 0).toString('hex') + curtime + bits.toString('hex') + Buffer.alloc(4, 0).toString('hex') +
-                        packUInt32LE(blob1.length + extraNoncePlaceholderLength + blob2.length).toString('hex') +
-                        blob1.toString('hex') + Buffer.alloc(extraNoncePlaceholderLength, 0).toString('hex') + blob2.toString('hex') +
-                        Buffer.concat(merkleTreeBranches(getTransactionBuffers(rpcData.transactions))).toString('hex'),
-    reserved_offset:    80 + 4 + blob1.length
+                        varIntBuffer(rpcData.transactions.length + 1).toString('hex') +
+                        blob1.toString('hex') + Buffer.alloc(extraNoncePlaceholderLength, 0xCC).toString('hex') + blob2.toString('hex') +
+                        Buffer.concat(rpcData.transactions.map(function(tx) { return Buffer.from(tx.data, 'hex'); })).toString('hex'),
+    reserved_offset:    80 + 4 + 1 + blob1.length
   }
-}
-
-module.exports.convertRtmBlob = function(buffer) {
-  let header = buffer.slice(0, 80);
-  const blobSize = buffer.slice(80, 80 + 4).readUInt32LE();
-  let merkle_root = sha256d(buffer.slice(84, 84 + blobSize));
-  for (let i = 84 + blobSize; i < buffer.length; i += 32)
-    merkle_root = merkleJoin(merkle_root, buffer.slice(i, i + 32));
-  merkle_root.copy(header, 4 + 32, 0, 32);
-  return header;
-}
-
-module.exports.constructNewRtmBlob = function(blockTemplate, nonceBuff) {
-  nonceBuff.copy(blockTemplate, 76, 0, 4);
-  return blockTemplate;
 }
