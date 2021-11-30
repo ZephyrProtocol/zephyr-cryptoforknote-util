@@ -253,8 +253,6 @@ module.exports.RtmBlockTemplate = function(rpcData, poolAddress) {
   let bits    = Buffer.from(rpcData.bits, 'hex');
   bits.writeUInt32LE(bits.readUInt32BE());
 
-  console.log("1x" + (rpcData.transactions.length + 1) + " " + (blob1.length + extraNoncePlaceholderLength + blob2.length));
-
   return {
     difficulty:         parseFloat((diff1 / bignum(rpcData.target, 16).toNumber()).toFixed(9)),
     height:             rpcData.height,

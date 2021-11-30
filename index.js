@@ -154,14 +154,12 @@ module.exports.RavenBlockTemplate = function(rpcData, poolAddress) {
 
 function update_merkle_root_hash(offset, payload, blob_in, blob_out) {
   const nTransactions = varuint.decode(blob_in, offset);
-  console.log("2x" + nTransactions);
   offset += varuint.decode.bytes;
   let transactions = [];
   for (let i = 0; i < nTransactions; ++i) {
     const tx = bitcoin.Transaction.fromBuffer(blob_in.slice(offset), true, payload && i == 0);
     transactions.push(tx);
     offset += tx.byteLength();
-    console.log("2xx " + tx.byteLength());
   }
   getMerkleRoot(transactions).copy(blob_out, 4 + 32);
 };
