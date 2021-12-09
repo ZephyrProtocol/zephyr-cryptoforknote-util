@@ -164,10 +164,14 @@ function update_merkle_root_hash(offset, payload, blob_in, blob_out) {
   getMerkleRoot(transactions).copy(blob_out, 4 + 32);
 };
 
+module.exports.blockHashBuff = function(blobBuffer) {
+  return reverseBuffer(hash256(blobBuffer));
+};
+
 module.exports.convertRavenBlob = function(blobBuffer) {
   let header = blobBuffer.slice(0, 80);
   update_merkle_root_hash(80 + 8 + 32, false, blobBuffer, header);
-  return reverseBuffer(hash256(header));
+  return module.exports.blockHashBuff(header);
 };
 
 module.exports.constructNewRavenBlob = function(blockTemplate, nonceBuff, mixhashBuff) {
