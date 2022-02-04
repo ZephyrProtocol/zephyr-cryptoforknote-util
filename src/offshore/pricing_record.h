@@ -116,7 +116,7 @@ namespace offshore
       void set_for_height_821428();
       bool equal(const pricing_record& other) const noexcept;
       bool empty() const noexcept;
-      bool verifySignature() const;
+      bool verifySignature(const std::string& public_key) const;
       bool valid(uint32_t hf_version, uint64_t bl_timestamp, uint64_t last_bl_timestamp) const;
 
       pricing_record& operator=(const pricing_record& orig) noexcept;

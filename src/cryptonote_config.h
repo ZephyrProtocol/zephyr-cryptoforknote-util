@@ -1,9 +1,20 @@
 #pragma once
 
 #define CURRENT_TRANSACTION_VERSION  1
+#define POU_TRANSACTION_VERSION      6
 #define OFFSHORE_TRANSACTION_VERSION 3
 #define HF_VERSION_XASSET_FEES_V2    17
 #define HF_VERSION_HAVEN2            18
+
+// UNLOCK TIMES
+#define TX_V6_OFFSHORE_UNLOCK_BLOCKS                    21*720  // 21 day unlock time
+#define TX_V6_ONSHORE_UNLOCK_BLOCKS                     360     // 12 hour unlock time
+#define TX_V6_XASSET_UNLOCK_BLOCKS                      1440    // 2 day unlock time
+#define TX_V6_OFFSHORE_UNLOCK_BLOCKS_TESTNET            60     // 2 hour unlock time - FOR TESTING ONLY
+#define TX_V6_ONSHORE_UNLOCK_BLOCKS_TESTNET             30     // 1 hour unlock time - FOR TESTING ONLY
+#define TX_V6_XASSET_UNLOCK_BLOCKS_TESTNET              60     // 2 hour unlock time - FOR TESTING ONLY
+
+#define PRICING_RECORD_VALID_TIME_DIFF_FROM_BLOCK       120  // seconds
 
 enum BLOB_TYPE {
   BLOB_TYPE_CRYPTONOTE        = 0,

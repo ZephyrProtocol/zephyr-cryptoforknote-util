@@ -33,10 +33,6 @@
 #include "storages/portable_storage.h"
 
 #include "string_tools.h"
-
-#define PRICING_RECORD_VALID_BLOCKS                     10
-#define PRICING_RECORD_VALID_TIME_DIFF_FROM_BLOCK       120  // seconds
-
 namespace offshore
 {
 
@@ -262,27 +258,8 @@ namespace offshore
     return (*this).equal(empty_pr);
   }
 
-  bool pricing_record::verifySignature() const 
+  bool pricing_record::verifySignature(const std::string& public_key) const 
   {
-    // Oracle public keys
-    std::string const mainnet_public_key = "-----BEGIN PUBLIC KEY-----\n"
-      "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE5YBxWx1AZCA9jTUk8Pr2uZ9jpfRt\n"
-      "KWv3Vo1/Gny+1vfaxsXhBQiG1KlHkafNGarzoL0WHW4ocqaaqF5iv8i35A==\n"
-      "-----END PUBLIC KEY-----\n";
-    std::string const testnet_public_key = "-----BEGIN PUBLIC KEY-----\n"
-      "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEtWqvQh7OdXrdgXcDeBMRVfLWTW3F\n"
-      "wByeoVJFBfZymScJIJl46j66xG6ngnyj4ai4/QPFnSZ1I9jjMRlTWC4EPA==\n"
-      "-----END PUBLIC KEY-----\n";
-    std::string const stagenet_public_key = "-----BEGIN PUBLIC KEY-----\n"
-      "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEtWqvQh7OdXrdgXcDeBMRVfLWTW3F\n"
-      "wByeoVJFBfZymScJIJl46j66xG6ngnyj4ai4/QPFnSZ1I9jjMRlTWC4EPA==\n"
-      "-----END PUBLIC KEY-----\n";
-
-    // Comment out all but 1 of the following lines to select the correct Oracle PK
-    std::string const public_key = mainnet_public_key;
-    //std::string const public_key = testnet_public_key;
-    //std::string const public_key = stagenet_public_key;
-    
     CHECK_AND_ASSERT_THROW_MES(!public_key.empty(), "Pricing record verification failed. NULL public key. PK Size: " << public_key.size()); // TODO: is this necessary or the one below already covers this case, meannin it will produce empty pubkey?
     
     // extract the key
@@ -432,8 +409,27 @@ namespace offshore
       }
     }
 
+    // Oracle public keys
+    std::string const mainnet_public_key = "-----BEGIN PUBLIC KEY-----\n"
+      "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE5YBxWx1AZCA9jTUk8Pr2uZ9jpfRt\n"
+      "KWv3Vo1/Gny+1vfaxsXhBQiG1KlHkafNGarzoL0WHW4ocqaaqF5iv8i35A==\n"
+      "-----END PUBLIC KEY-----\n";
+    std::string const testnet_public_key = "-----BEGIN PUBLIC KEY-----\n"
+      "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEtWqvQh7OdXrdgXcDeBMRVfLWTW3F\n"
+      "wByeoVJFBfZymScJIJl46j66xG6ngnyj4ai4/QPFnSZ1I9jjMRlTWC4EPA==\n"
+      "-----END PUBLIC KEY-----\n";
+    std::string const stagenet_public_key = "-----BEGIN PUBLIC KEY-----\n"
+      "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEtWqvQh7OdXrdgXcDeBMRVfLWTW3F\n"
+      "wByeoVJFBfZymScJIJl46j66xG6ngnyj4ai4/QPFnSZ1I9jjMRlTWC4EPA==\n"
+      "-----END PUBLIC KEY-----\n";
+    
+    // Comment out all but 1 of the following lines to select the correct Oracle PK
+    std::string const public_key = mainnet_public_key;
+    //std::string const public_key = testnet_public_key;
+    //std::string const public_key = stagenet_public_key;
+
     // verify the signature
-    if (!verifySignature()) {
+    if (!verifySignature(public_key)) {
       LOG_ERROR("Invalid pricing record signature.");
       return false;
     }

@@ -89,6 +89,7 @@ namespace cryptonote
     {
       // This is the correct way to get the fee for Haven, because outs may be in different currencies to ins
       switch (tx.version) {
+      case 6:
       case 5:
         fee = tx.rct_signatures.txnFee + tx.rct_signatures.txnOffshoreFee;
         break;
@@ -282,6 +283,10 @@ namespace cryptonote
   //-----------------------------------------------------------------------------------------------
   bool check_outs_valid(const transaction& tx)
   {
+    if (tx.blob_type == BLOB_TYPE_CRYPTONOTE_XHV && tx.version >= POU_TRANSACTION_VERSION)
+    {
+      CHECK_AND_ASSERT_MES(tx.vout.size() == tx.output_unlock_times.size(), false, "tx version 6+ must have equal number of output unlock times and outputs");
+    }
     BOOST_FOREACH(const tx_out& out, tx.vout)
     {
       if (tx.blob_type != BLOB_TYPE_CRYPTONOTE_XHV) {

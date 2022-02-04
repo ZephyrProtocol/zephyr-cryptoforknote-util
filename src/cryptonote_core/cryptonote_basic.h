@@ -258,7 +258,8 @@ namespace cryptonote
         if (version == loki_version_3_per_output_unlock_times)
           FIELD(is_deregister)
       }
-      VARINT_FIELD(unlock_time)
+      if (blob_type != BLOB_TYPE_CRYPTONOTE_XHV || version < POU_TRANSACTION_VERSION)
+        VARINT_FIELD(unlock_time)
       FIELD(vin)
       FIELD(vout)
       if (blob_type == BLOB_TYPE_CRYPTONOTE_LOKI || blob_type == BLOB_TYPE_CRYPTONOTE_XTNC)
@@ -275,6 +276,11 @@ namespace cryptonote
         VARINT_FIELD(pricing_record_height)
         if (version < 5)
           FIELD(offshore_data)
+        if (version >= POU_TRANSACTION_VERSION)
+        {
+          FIELD(output_unlock_times)
+        }
+        if (version >= POU_TRANSACTION_VERSION && vout.size() != output_unlock_times.size()) return false;
         VARINT_FIELD(amount_burnt)
         VARINT_FIELD(amount_minted)
       }
@@ -389,6 +395,7 @@ namespace cryptonote
     offshore_data.clear();
     amount_burnt = 0;
     amount_minted = 0;
+    output_unlock_times.clear();
   }
 
   inline
