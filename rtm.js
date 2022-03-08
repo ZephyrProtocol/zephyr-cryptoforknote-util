@@ -253,15 +253,33 @@ module.exports.RtmBlockTemplate = function(rpcData, poolAddress) {
   const curtime = packUInt32LE(rpcData.curtime).toString('hex');
   let bits = Buffer.from(rpcData.bits, 'hex');
   bits.writeUInt32LE(bits.readUInt32BE());
-  const txn = varIntBuffer(rpcData.transactions.length + 1);
+  let txs = [];
+  // skip version 1 transaction because they contain some OP_RETURN(0x6A) opcode in the beginning of
+  // tx input scripts instead of size of script part so not sure how to parse them
+  // just drop them for now
+  // example: https://explorer.raptoreum.com/tx/1461d70fa8362b0896e2e9be6312521f2684f22c9b0f9152695f33f67d9f9d3f
+  rpcData.transactions.forEach(function(tx, i) {
+    if (tx.version != 1) {
+      try {
+        bitcoin.Transaction.fromBuffer(Buffer.from(tx.data, 'hex'), true, i == 0);
+      } catch(err) {
+        console.error("Skip RTM tx due to parse error: " + tx.data);
+        return; // skip transaction if it is not parsed OK (varint coding seems to be different for RTM)
+      }
+      tx.push(tx);
+    } else {
+      console.error("Skip RTM v1 tx: " + tx.data);
+    }
+  });
+  const txn = varIntBuffer(txs.length + 1);
 
   return {
     difficulty:         parseFloat((diff1 / bignum(rpcData.target, 16).toNumber()).toFixed(9)),
     height:             rpcData.height,
     prev_hash:          prev_hash,
     blocktemplate_blob: version + prev_hash + Buffer.alloc(32, 0).toString('hex') + curtime + bits.toString('hex') + Buffer.alloc(4, 0).toString('hex') +
-                        txn.toString('hex') + blob1.toString('hex') + Buffer.alloc(extraNoncePlaceholderLength, 0xCC).toString('hex') + blob2.toString('hex') +
-                        Buffer.concat(rpcData.transactions.map(function(tx) { return Buffer.from(tx.data, 'hex'); })).toString('hex'),
+                        txn.toString('hex') + blob1.toString('hex') + Buffer.alloc(extraNoncePlaceholderLength, 0xCC).toString('hex') + blob2.toString('hex')  +
+                        Buffer.concat(txs.map(function(tx) { return Buffer.from(tx.data, 'hex'); })).toString('hex'),
     reserved_offset:    80 + txn.length + blob1.length
   }
 }
