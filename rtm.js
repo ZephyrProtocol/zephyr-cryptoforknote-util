@@ -267,7 +267,7 @@ module.exports.RtmBlockTemplate = function(rpcData, poolAddress) {
         console.error("Skip RTM tx due to parse error: " + tx.data);
         return; // skip transaction if it is not parsed OK (varint coding seems to be different for RTM)
       }
-      tx.push(tx);
+      txs.push(tx);
     } else {
       console.error("Skip RTM v1 tx: " + tx.data);
     }
