@@ -1,5 +1,6 @@
-const bignum = require('bignum');
-const base58 = require('base58-native');
+const bignum  = require('bignum');
+const base58  = require('base58-native');
+const bitcoin = require('bitcoinjs-lib');
 
 const diff1 = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 
@@ -258,7 +259,7 @@ module.exports.RtmBlockTemplate = function(rpcData, poolAddress) {
   // tx input scripts instead of size of script part so not sure how to parse them
   // just drop them for now
   // example: https://explorer.raptoreum.com/tx/1461d70fa8362b0896e2e9be6312521f2684f22c9b0f9152695f33f67d9f9d3f
-  rpcData.transactions.forEach(function(tx, i) {
+  rpcData.transactions.forEach(function(tx) {
     if (tx.version != 1) {
       try {
         bitcoin.Transaction.fromBuffer(Buffer.from(tx.data, 'hex'), false, false);
