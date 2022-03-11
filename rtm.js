@@ -261,7 +261,7 @@ module.exports.RtmBlockTemplate = function(rpcData, poolAddress) {
   rpcData.transactions.forEach(function(tx, i) {
     if (tx.version != 1) {
       try {
-        bitcoin.Transaction.fromBuffer(Buffer.from(tx.data, 'hex'), true, i == 0);
+        bitcoin.Transaction.fromBuffer(Buffer.from(tx.data, 'hex'), false, false);
       } catch(err) {
         console.error("Skip RTM tx due to parse error: " + tx.data);
         return; // skip transaction if it is not parsed OK (varint coding seems to be different for RTM)
