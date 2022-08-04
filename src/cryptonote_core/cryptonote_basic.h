@@ -14,8 +14,6 @@
 #include "serialization/variant.h"
 #include "serialization/vector.h"
 #include "serialization/binary_archive.h"
-#include "serialization/json_archive.h"
-#include "serialization/debug_archive.h"
 #include "serialization/crypto.h"
 #include "serialization/pricing_record.h"
 #include "serialization/keyvalue_serialization.h" // eepe named serialization
@@ -658,33 +656,3 @@ VARIANT_TAG(binary_archive, cryptonote::txout_offshore, 0x3);
 VARIANT_TAG(binary_archive, cryptonote::txout_xasset, 0x5);
 VARIANT_TAG(binary_archive, cryptonote::transaction, 0xcc);
 VARIANT_TAG(binary_archive, cryptonote::block, 0xbb);
-
-VARIANT_TAG(json_archive, cryptonote::txin_gen, "gen");
-VARIANT_TAG(json_archive, cryptonote::txin_to_script, "script");
-VARIANT_TAG(json_archive, cryptonote::txin_to_scripthash, "scripthash");
-VARIANT_TAG(json_archive, cryptonote::txin_to_key, "key");
-VARIANT_TAG(json_archive, cryptonote::txin_offshore, "offshore");
-VARIANT_TAG(json_archive, cryptonote::txin_onshore, "onshore");
-VARIANT_TAG(json_archive, cryptonote::txin_xasset, "xasset");
-VARIANT_TAG(json_archive, cryptonote::txout_to_script, "script");
-VARIANT_TAG(json_archive, cryptonote::txout_to_scripthash, "scripthash");
-VARIANT_TAG(json_archive, cryptonote::txout_to_key, "key");
-VARIANT_TAG(json_archive, cryptonote::txout_offshore, "offshore");
-VARIANT_TAG(json_archive, cryptonote::txout_xasset, "xasset");
-VARIANT_TAG(json_archive, cryptonote::transaction, "tx");
-VARIANT_TAG(json_archive, cryptonote::block, "block");
-
-VARIANT_TAG(debug_archive, cryptonote::txin_gen, "gen");
-VARIANT_TAG(debug_archive, cryptonote::txin_to_script, "script");
-VARIANT_TAG(debug_archive, cryptonote::txin_to_scripthash, "scripthash");
-VARIANT_TAG(debug_archive, cryptonote::txin_to_key, "key");
-VARIANT_TAG(debug_archive, cryptonote::txin_offshore, "offshore");
-VARIANT_TAG(debug_archive, cryptonote::txin_onshore, "onshore");
-VARIANT_TAG(debug_archive, cryptonote::txin_xasset, "xasset");
-VARIANT_TAG(debug_archive, cryptonote::txout_to_script, "script");
-VARIANT_TAG(debug_archive, cryptonote::txout_to_scripthash, "scripthash");
-VARIANT_TAG(debug_archive, cryptonote::txout_to_key, "key");
-VARIANT_TAG(debug_archive, cryptonote::txout_offshore, "offshore");
-VARIANT_TAG(debug_archive, cryptonote::txout_xasset, "xasset");
-VARIANT_TAG(debug_archive, cryptonote::transaction, "tx");
-VARIANT_TAG(debug_archive, cryptonote::block, "block");

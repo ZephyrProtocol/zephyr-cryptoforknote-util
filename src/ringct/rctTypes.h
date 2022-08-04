@@ -50,9 +50,7 @@ extern "C" {
 #include "span.h"
 #include "memwipe.h"
 #include "serialization/vector.h"
-#include "serialization/debug_archive.h"
 #include "serialization/binary_archive.h"
-#include "serialization/json_archive.h"
 
 
 //Define this flag when debugging to get additional info on the console
@@ -739,23 +737,6 @@ BLOB_SERIALIZER(rct::ctkey);
 BLOB_SERIALIZER(rct::multisig_kLRki);
 BLOB_SERIALIZER(rct::boroSig);
 
-VARIANT_TAG(debug_archive, rct::key, "rct::key");
-VARIANT_TAG(debug_archive, rct::key64, "rct::key64");
-VARIANT_TAG(debug_archive, rct::keyV, "rct::keyV");
-VARIANT_TAG(debug_archive, rct::keyM, "rct::keyM");
-VARIANT_TAG(debug_archive, rct::ctkey, "rct::ctkey");
-VARIANT_TAG(debug_archive, rct::ctkeyV, "rct::ctkeyV");
-VARIANT_TAG(debug_archive, rct::ctkeyM, "rct::ctkeyM");
-VARIANT_TAG(debug_archive, rct::ecdhTuple, "rct::ecdhTuple");
-VARIANT_TAG(debug_archive, rct::mgSig, "rct::mgSig");
-VARIANT_TAG(debug_archive, rct::rangeSig, "rct::rangeSig");
-VARIANT_TAG(debug_archive, rct::boroSig, "rct::boroSig");
-VARIANT_TAG(debug_archive, rct::rctSig, "rct::rctSig");
-VARIANT_TAG(debug_archive, rct::Bulletproof, "rct::bulletproof");
-VARIANT_TAG(debug_archive, rct::multisig_kLRki, "rct::multisig_kLRki");
-VARIANT_TAG(debug_archive, rct::multisig_out, "rct::multisig_out");
-VARIANT_TAG(debug_archive, rct::clsag, "rct::clsag");
-
 VARIANT_TAG(binary_archive, rct::key, 0x90);
 VARIANT_TAG(binary_archive, rct::key64, 0x91);
 VARIANT_TAG(binary_archive, rct::keyV, 0x92);
@@ -772,22 +753,5 @@ VARIANT_TAG(binary_archive, rct::Bulletproof, 0x9c);
 VARIANT_TAG(binary_archive, rct::multisig_kLRki, 0x9d);
 VARIANT_TAG(binary_archive, rct::multisig_out, 0x9e);
 VARIANT_TAG(binary_archive, rct::clsag, 0x9f);
-
-VARIANT_TAG(json_archive, rct::key, "rct_key");
-VARIANT_TAG(json_archive, rct::key64, "rct_key64");
-VARIANT_TAG(json_archive, rct::keyV, "rct_keyV");
-VARIANT_TAG(json_archive, rct::keyM, "rct_keyM");
-VARIANT_TAG(json_archive, rct::ctkey, "rct_ctkey");
-VARIANT_TAG(json_archive, rct::ctkeyV, "rct_ctkeyV");
-VARIANT_TAG(json_archive, rct::ctkeyM, "rct_ctkeyM");
-VARIANT_TAG(json_archive, rct::ecdhTuple, "rct_ecdhTuple");
-VARIANT_TAG(json_archive, rct::mgSig, "rct_mgSig");
-VARIANT_TAG(json_archive, rct::rangeSig, "rct_rangeSig");
-VARIANT_TAG(json_archive, rct::boroSig, "rct_boroSig");
-VARIANT_TAG(json_archive, rct::rctSig, "rct_rctSig");
-VARIANT_TAG(json_archive, rct::Bulletproof, "rct_bulletproof");
-VARIANT_TAG(json_archive, rct::multisig_kLRki, "rct_multisig_kLR");
-VARIANT_TAG(json_archive, rct::multisig_out, "rct_multisig_out");
-VARIANT_TAG(json_archive, rct::clsag, "rct_clsag");
 
 #endif  /* RCTTYPES_H */
