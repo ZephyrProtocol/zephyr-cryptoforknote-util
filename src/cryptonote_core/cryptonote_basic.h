@@ -65,11 +65,26 @@ namespace cryptonote
     crypto::hash hash;
   };
 
+  // outputs <= HF_VERSION_VIEW_TAGS
   struct txout_to_key
   {
     txout_to_key() { }
     txout_to_key(const crypto::public_key &_key) : key(_key) { }
     crypto::public_key key;
+  };
+
+  // outputs >= HF_VERSION_VIEW_TAGS
+  struct txout_to_tagged_key
+  {
+    txout_to_tagged_key() { }
+    txout_to_tagged_key(const crypto::public_key &_key, const crypto::view_tag &_view_tag) : key(_key), view_tag(_view_tag) { }
+    crypto::public_key key;
+    crypto::view_tag view_tag; // optimization to reduce scanning time
+
+    BEGIN_SERIALIZE_OBJECT()
+      FIELD(key)
+      FIELD(view_tag)
+    END_SERIALIZE()
   };
 
   struct txout_offshore
@@ -187,9 +202,9 @@ namespace cryptonote
   
   typedef boost::variant<txin_gen, txin_to_script, txin_to_scripthash, txin_to_key, txin_offshore, txin_onshore, txin_xasset> txin_v;
 
-  typedef boost::variant<txout_to_script, txout_to_scripthash, txout_to_key, txout_offshore, txout_xasset> txout_target_v;
+  typedef boost::variant<txout_to_script, txout_to_scripthash, txout_to_key, txout_to_tagged_key> txout_target_v;
+  typedef boost::variant<txout_to_script, txout_to_scripthash, txout_to_key, txout_offshore, txout_xasset> txout_xhv_target_v;
 
-  //typedef std::pair<uint64_t, txout> out_t;
   struct tx_out
   {
     uint64_t amount;
@@ -200,6 +215,18 @@ namespace cryptonote
       FIELD(target)
     END_SERIALIZE()
   };
+
+  struct tx_out_xhv
+  {
+    uint64_t amount;
+    txout_xhv_target_v target;
+
+    BEGIN_SERIALIZE_OBJECT()
+      VARINT_FIELD(amount)
+      FIELD(target)
+    END_SERIALIZE()
+  };
+
 
   enum loki_version
   {
@@ -221,6 +248,7 @@ namespace cryptonote
 
     std::vector<txin_v> vin;
     std::vector<tx_out> vout;
+    std::vector<tx_out_xhv> vout_xhv;
     //extra
     std::vector<uint8_t> extra;
     // Block height to use PR from
@@ -259,7 +287,10 @@ namespace cryptonote
       if (blob_type != BLOB_TYPE_CRYPTONOTE_XHV || version < POU_TRANSACTION_VERSION)
         VARINT_FIELD(unlock_time)
       FIELD(vin)
-      FIELD(vout)
+      if (blob_type != BLOB_TYPE_CRYPTONOTE_XHV)
+        FIELD(vout)
+      else
+        FIELD(vout_xhv)
       if (blob_type == BLOB_TYPE_CRYPTONOTE_LOKI || blob_type == BLOB_TYPE_CRYPTONOTE_XTNC)
       {
         if (version >= loki_version_3_per_output_unlock_times && vout.size() != output_unlock_times.size()) return false;
@@ -278,7 +309,7 @@ namespace cryptonote
         {
           FIELD(output_unlock_times)
         }
-        if (version >= POU_TRANSACTION_VERSION && vout.size() != output_unlock_times.size()) return false;
+        if (version >= POU_TRANSACTION_VERSION && vout_xhv.size() != output_unlock_times.size()) return false;
         VARINT_FIELD(amount_burnt)
         VARINT_FIELD(amount_minted)
       }
@@ -339,7 +370,7 @@ namespace cryptonote
         if (!vin.empty())
         {
           ar.begin_object();
-          bool r = rct_signatures.serialize_rctsig_base(ar, vin.size(), vout.size());
+          bool r = rct_signatures.serialize_rctsig_base(ar, vin.size(), blob_type != BLOB_TYPE_CRYPTONOTE_XHV ? vout.size() : vout_xhv.size());
           if (!r || !ar.stream().good()) return false;
           ar.end_object();
           if (rct_signatures.type != rct::RCTTypeNull)
@@ -350,7 +381,7 @@ namespace cryptonote
               r = rct_signatures.p.serialize_rctsig_prunable(ar, rct_signatures.type, vin.size(), vout.size(),
                   vin[0].type() == typeid(txin_to_key) ? boost::get<txin_to_key>(vin[0]).key_offsets.size() - 1 : 0);
             } else {
-              r = rct_signatures.p.serialize_rctsig_prunable(ar, rct_signatures.type, vin.size(), vout.size(),
+              r = rct_signatures.p.serialize_rctsig_prunable(ar, rct_signatures.type, vin.size(), vout_xhv.size(),
                   vin.size() > 0 && vin[0].type() == typeid(txin_to_key) ? boost::get<txin_to_key>(vin[0]).key_offsets.size() - 1 :
                   vin.size() > 0 && vin[0].type() == typeid(txin_offshore) ? boost::get<txin_offshore>(vin[0]).key_offsets.size() - 1 :
                   vin.size() > 0 && vin[0].type() == typeid(txin_onshore) ? boost::get<txin_onshore>(vin[0]).key_offsets.size() - 1 :
@@ -387,6 +418,7 @@ namespace cryptonote
     unlock_time = 0;
     vin.clear();
     vout.clear();
+    vout_xhv.clear();
     extra.clear();
     signatures.clear();
     pricing_record_height = 0;
@@ -652,6 +684,7 @@ VARIANT_TAG(binary_archive, cryptonote::txin_xasset, 0x5);
 VARIANT_TAG(binary_archive, cryptonote::txout_to_script, 0x0);
 VARIANT_TAG(binary_archive, cryptonote::txout_to_scripthash, 0x1);
 VARIANT_TAG(binary_archive, cryptonote::txout_to_key, 0x2);
+VARIANT_TAG(binary_archive, cryptonote::txout_to_tagged_key, 0x3);
 VARIANT_TAG(binary_archive, cryptonote::txout_offshore, 0x3);
 VARIANT_TAG(binary_archive, cryptonote::txout_xasset, 0x5);
 VARIANT_TAG(binary_archive, cryptonote::transaction, 0xcc);

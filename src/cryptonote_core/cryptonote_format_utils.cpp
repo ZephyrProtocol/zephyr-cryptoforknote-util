@@ -56,86 +56,6 @@ namespace cryptonote
     return true;
   }
   //---------------------------------------------------------------
-  bool generate_key_image_helper(const account_keys& ack, const crypto::public_key& tx_public_key, size_t real_output_index, keypair& in_ephemeral, crypto::key_image& ki)
-  {
-    crypto::key_derivation recv_derivation = AUTO_VAL_INIT(recv_derivation);
-    bool r = crypto::generate_key_derivation(tx_public_key, ack.m_view_secret_key, recv_derivation);
-    CHECK_AND_ASSERT_MES(r, false, "key image helper: failed to generate_key_derivation(" << tx_public_key << ", " << ack.m_view_secret_key << ")");
-
-    r = crypto::derive_public_key(recv_derivation, real_output_index, ack.m_account_address.m_spend_public_key, in_ephemeral.pub);
-    CHECK_AND_ASSERT_MES(r, false, "key image helper: failed to derive_public_key(" << recv_derivation << ", " << real_output_index <<  ", " << ack.m_account_address.m_spend_public_key << ")");
-
-    crypto::derive_secret_key(recv_derivation, real_output_index, ack.m_spend_secret_key, in_ephemeral.sec);
-
-    crypto::generate_key_image(in_ephemeral.pub, in_ephemeral.sec, ki);
-    return true;
-  }
-  //---------------------------------------------------------------
-  uint64_t power_integral(uint64_t a, uint64_t b)
-  {
-    if(b == 0)
-      return 1;
-    uint64_t total = a;
-    for(uint64_t i = 1; i != b; i++)
-      total *= a;
-    return total;
-  }
-  //---------------------------------------------------------------
-  bool get_tx_fee(const transaction& tx, uint64_t & fee)
-  {
-    uint64_t amount_in = 0;
-    uint64_t amount_out = 0;
-    if (tx.blob_type == BLOB_TYPE_CRYPTONOTE_XHV)
-    {
-      // This is the correct way to get the fee for Haven, because outs may be in different currencies to ins
-      switch (tx.version) {
-      case 6:
-      case 5:
-        fee = tx.rct_signatures.txnFee + tx.rct_signatures.txnOffshoreFee;
-        break;
-      case 4:
-      case 3:
-        if (tx.vin[0].type() == typeid(txin_to_key)) {
-          fee = tx.rct_signatures.txnFee + tx.rct_signatures.txnOffshoreFee;
-        } else if (tx.vin[0].type() == typeid(txin_offshore)) {
-          fee = tx.rct_signatures.txnFee_usd + tx.rct_signatures.txnOffshoreFee_usd;
-        } else if (tx.vin[0].type() == typeid(txin_onshore)) {
-          fee = tx.rct_signatures.txnFee_usd + tx.rct_signatures.txnOffshoreFee_usd;
-        } else if (tx.vin[0].type() == typeid(txin_xasset)) {
-          fee = tx.rct_signatures.txnFee_xasset + tx.rct_signatures.txnOffshoreFee_xasset;
-        } else {
-          CHECK_AND_ASSERT_MES(false, false, "unexpected type id in transaction");
-          return false;
-        }
-        break;
-      case 2:
-      case 1:
-        fee = tx.rct_signatures.txnFee;
-        break;
-      }
-      return true;
-    }
-    BOOST_FOREACH(auto& in, tx.vin)
-    {
-      CHECK_AND_ASSERT_MES(in.type() == typeid(txin_to_key), 0, "unexpected type id in transaction");
-      amount_in += boost::get<txin_to_key>(in).amount;
-    }
-    BOOST_FOREACH(auto& o, tx.vout)
-      amount_out += o.amount;
-
-    CHECK_AND_ASSERT_MES(amount_in >= amount_out, false, "transaction spend (" <<amount_in << ") more than it has (" << amount_out << ")");
-    fee = amount_in - amount_out;
-    return true;
-  }
-  //---------------------------------------------------------------
-  uint64_t get_tx_fee(const transaction& tx)
-  {
-    uint64_t r = 0;
-    if(!get_tx_fee(tx, r))
-      return 0;
-    return r;
-  }
-  //---------------------------------------------------------------
   bool parse_tx_extra(const std::vector<uint8_t>& tx_extra, std::vector<tx_extra_field>& tx_extra_fields)
   {
     tx_extra_fields.clear();
@@ -280,121 +200,6 @@ namespace cryptonote
     }
     return true;
   }
-  //-----------------------------------------------------------------------------------------------
-  bool check_outs_valid(const transaction& tx)
-  {
-    if (tx.blob_type == BLOB_TYPE_CRYPTONOTE_XHV && tx.version >= POU_TRANSACTION_VERSION)
-    {
-      CHECK_AND_ASSERT_MES(tx.vout.size() == tx.output_unlock_times.size(), false, "tx version 6+ must have equal number of output unlock times and outputs");
-    }
-    BOOST_FOREACH(const tx_out& out, tx.vout)
-    {
-      if (tx.blob_type != BLOB_TYPE_CRYPTONOTE_XHV) {
-        CHECK_AND_ASSERT_MES(out.target.type() == typeid(txout_to_key), false, "wrong variant type: "
-          << out.target.type().name() << ", expected " << typeid(txout_to_key).name()
-          << ", in transaction id=" << get_transaction_hash(tx));
-      } else {
-	CHECK_AND_ASSERT_MES(out.target.type() == typeid(txout_to_key) ||
-			     out.target.type() == typeid(txout_offshore) ||
-			     out.target.type() == typeid(txout_xasset), false, "wrong variant type: "
-			     << out.target.type().name() << ", expected " << typeid(txout_to_key).name()
-			     << "or " << typeid(txout_offshore).name()
-			     << "or " << typeid(txout_xasset).name()
-			     << ", in transaction id=" << get_transaction_hash(tx));
-      }
-
-      if (tx.version == 1)
-      {
-        CHECK_AND_NO_ASSERT_MES(0 < out.amount, false, "zero amount ouput in transaction id=" << get_transaction_hash(tx));
-      }
-
-      if (tx.blob_type != BLOB_TYPE_CRYPTONOTE_XHV) {
-        if(!check_key(boost::get<txout_to_key>(out.target).key))
-          return false;
-      } else {
-	if(!check_key(out.target.type() == typeid(txout_to_key) ? boost::get<txout_to_key>(out.target).key :
-		      out.target.type() == typeid(txout_offshore) ? boost::get<txout_offshore>(out.target).key :
-		      boost::get<txout_xasset>(out.target).key))
-          return false;
-      }
-    }
-    return true;
-  }
-  //-----------------------------------------------------------------------------------------------
-  bool check_money_overflow(const transaction& tx)
-  {
-    return check_inputs_overflow(tx) && check_outs_overflow(tx);
-  }
-  //---------------------------------------------------------------
-  bool check_inputs_overflow(const transaction& tx)
-  {
-    uint64_t money = 0;
-    BOOST_FOREACH(const auto& in, tx.vin)
-    {
-      if (tx.blob_type == BLOB_TYPE_CRYPTONOTE_XHV && tx.vin[0].type() == typeid(txin_xasset)) {
-        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_xasset, tokey_in, false);
-        if(money > tokey_in.amount + money)
-          return false;
-        money += tokey_in.amount;
-      } else if (tx.blob_type == BLOB_TYPE_CRYPTONOTE_XHV && tx.vin[0].type() == typeid(txin_offshore)) {
-        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_offshore, tokey_in, false);
-        if(money > tokey_in.amount + money)
-          return false;
-        money += tokey_in.amount;
-      } else if (tx.blob_type == BLOB_TYPE_CRYPTONOTE_XHV && tx.vin[0].type() == typeid(txin_onshore)) {
-        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_onshore, tokey_in, false);
-        if(money > tokey_in.amount + money)
-          return false;
-        money += tokey_in.amount;
-      } else {
-        CHECKED_GET_SPECIFIC_VARIANT(in, const txin_to_key, tokey_in, false);
-        if(money > tokey_in.amount + money)
-          return false;
-        money += tokey_in.amount;
-      }
-    }
-    return true;
-  }
-  //---------------------------------------------------------------
-  bool check_outs_overflow(const transaction& tx)
-  {
-    uint64_t money = 0;
-    BOOST_FOREACH(const auto& o, tx.vout)
-    {
-      if(money > o.amount + money)
-        return false;
-      money += o.amount;
-    }
-    return true;
-  }
-  /*
-  //---------------------------------------------------------------
-  uint64_t get_outs_money_amount(const transaction& tx)
-  {
-    uint64_t outputs_amount = 0;
-    BOOST_FOREACH(const auto& o, tx.vout)
-      outputs_amount += o.amount;
-    return outputs_amount;
-  }
-  */
-  //---------------------------------------------------------------
-  std::map<std::string, uint64_t> get_outs_money_amount(const transaction& tx)
-  {
-    std::map<std::string, uint64_t> outputs_amount;
-    for(const auto& o: tx.vout) {
-      std::string asset_type;
-      if (o.target.type() == typeid(txout_offshore)) {
-        asset_type = "XUSD";
-      } else if (o.target.type() == typeid(txout_xasset)) {;
-        asset_type = boost::get<txout_xasset>(o.target).asset_type;
-      } else {
-        // this close covers miner tx and normal XHV ouputs.
-        asset_type = "XHV";
-      }
-      outputs_amount[asset_type] += o.amount;
-    }
-    return outputs_amount;
-  }
   //---------------------------------------------------------------
   std::string short_hash_str(const crypto::hash& h)
   {
@@ -403,40 +208,6 @@ namespace cryptonote
     auto erased_pos = res.erase(8, 48);
     res.insert(8, "....");
     return res;
-  }
-  //---------------------------------------------------------------
-  bool is_out_to_acc(const account_keys& acc, const txout_to_key& out_key, const crypto::public_key& tx_pub_key, size_t output_index)
-  {
-    crypto::key_derivation derivation;
-    generate_key_derivation(tx_pub_key, acc.m_view_secret_key, derivation);
-    crypto::public_key pk;
-    derive_public_key(derivation, output_index, acc.m_account_address.m_spend_public_key, pk);
-    return pk == out_key.key;
-  }
-  //---------------------------------------------------------------
-  bool lookup_acc_outs(const account_keys& acc, const transaction& tx, std::vector<size_t>& outs, uint64_t& money_transfered)
-  {
-    crypto::public_key tx_pub_key = get_tx_pub_key_from_extra(tx);
-    if(null_pkey == tx_pub_key)
-      return false;
-    return lookup_acc_outs(acc, tx, tx_pub_key, outs, money_transfered);
-  }
-  //---------------------------------------------------------------
-  bool lookup_acc_outs(const account_keys& acc, const transaction& tx, const crypto::public_key& tx_pub_key, std::vector<size_t>& outs, uint64_t& money_transfered)
-  {
-    money_transfered = 0;
-    size_t i = 0;
-    BOOST_FOREACH(const tx_out& o,  tx.vout)
-    {
-      CHECK_AND_ASSERT_MES(o.target.type() ==  typeid(txout_to_key), false, "wrong type id in transaction out" );
-      if(is_out_to_acc(acc, boost::get<txout_to_key>(o.target), tx_pub_key, i))
-      {
-        outs.push_back(i);
-        money_transfered += o.amount;
-      }
-      i++;
-    }
-    return true;
   }
   //---------------------------------------------------------------
   void get_blob_hash(const blobdata& blob, crypto::hash& res)
@@ -488,7 +259,7 @@ namespace cryptonote
       std::stringstream ss;
       binary_archive<true> ba(ss);
       const size_t inputs = t.vin.size();
-      const size_t outputs = t.vout.size();
+      const size_t outputs = t.blob_type != BLOB_TYPE_CRYPTONOTE_XHV ? t.vout.size() : t.vout_xhv.size();
       bool r = tt.rct_signatures.serialize_rctsig_base(ba, inputs, outputs);
       CHECK_AND_ASSERT_MES(r, false, "Failed to serialize rct signatures base");
       cryptonote::get_blob_hash(ss.str(), hashes[1]);
@@ -504,7 +275,7 @@ namespace cryptonote
       std::stringstream ss;
       binary_archive<true> ba(ss);
       const size_t inputs = t.vin.size();
-      const size_t outputs = t.vout.size();
+      const size_t outputs = t.blob_type != BLOB_TYPE_CRYPTONOTE_XHV ? t.vout.size() : t.vout_xhv.size();
       size_t mixin;
       if (t.blob_type != BLOB_TYPE_CRYPTONOTE_XHV) {
         mixin = t.vin.empty() ? 0 : t.vin[0].type() == typeid(txin_to_key) ? boost::get<txin_to_key>(t.vin[0]).key_offsets.size() - 1 : 0;

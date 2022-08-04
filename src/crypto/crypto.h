@@ -49,12 +49,16 @@ namespace crypto {
     ec_scalar c, r;
     friend class crypto_ops;
   };
+
+  POD_CLASS view_tag {
+    char data;
+  };
 #pragma pack(pop)
 
   static_assert(sizeof(ec_point) == 32 && sizeof(ec_scalar) == 32 &&
     sizeof(public_key) == 32 && sizeof(secret_key) == 32 &&
     sizeof(key_derivation) == 32 && sizeof(key_image) == 32 &&
-    sizeof(signature) == 64, "Invalid structure size");
+    sizeof(signature) == 64 && sizeof(view_tag) == 1, "Invalid structure size");
 
   class crypto_ops {
     crypto_ops();
@@ -184,3 +188,4 @@ namespace crypto {
 CRYPTO_MAKE_COMPARABLE(public_key)
 CRYPTO_MAKE_HASHABLE(key_image)
 CRYPTO_MAKE_COMPARABLE(signature)
+CRYPTO_MAKE_COMPARABLE(view_tag)

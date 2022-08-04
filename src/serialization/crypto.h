@@ -61,3 +61,4 @@ BLOB_SERIALIZER(crypto::secret_key);
 BLOB_SERIALIZER(crypto::key_derivation);
 BLOB_SERIALIZER(crypto::key_image);
 BLOB_SERIALIZER(crypto::signature);
+BLOB_SERIALIZER(crypto::view_tag);
