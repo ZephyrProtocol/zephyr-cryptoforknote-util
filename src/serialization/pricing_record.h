@@ -33,7 +33,6 @@
 #include <vector>
 
 #include "serialization.h"
-#include "debug_archive.h"
 #include "offshore/pricing_record.h"
 #include "cryptonote_config.h"
 
