@@ -665,13 +665,6 @@ namespace cryptonote
   {
     crypto::public_key pub;
     crypto::secret_key sec;
-
-    static inline keypair generate()
-    {
-      keypair k;
-      generate_keys(k.pub, k.sec);
-      return k;
-    }
   };
   //---------------------------------------------------------------
 
