@@ -257,11 +257,12 @@ namespace cryptonote
     std::vector<uint8_t> offshore_data;
     uint64_t amount_burnt;
     uint64_t amount_minted;
+    std::vector<uint64_t> output_unlock_times;
+    size_t collateral_index; // index to the outputs vector that denotes the collateral output.
 
     //
     // NOTE: Loki specific
     //
-    std::vector<uint64_t> output_unlock_times;
     enum loki_type_t
     {
       loki_type_standard,
@@ -312,6 +313,11 @@ namespace cryptonote
         if (version >= POU_TRANSACTION_VERSION && vout_xhv.size() != output_unlock_times.size()) return false;
         VARINT_FIELD(amount_burnt)
         VARINT_FIELD(amount_minted)
+        if (version >= COLLATERAL_TRANSACTION_VERSION) {
+          VARINT_FIELD(collateral_index)
+          if (collateral_index >= vout.size())
+            return false;
+        }
       }
     END_SERIALIZE()
 
@@ -426,6 +432,7 @@ namespace cryptonote
     amount_burnt = 0;
     amount_minted = 0;
     output_unlock_times.clear();
+    collateral_index = 0;
   }
 
   inline
@@ -658,6 +665,13 @@ namespace cryptonote
   {
     crypto::public_key pub;
     crypto::secret_key sec;
+
+    static inline keypair generate()
+    {
+      keypair k;
+      generate_keys(k.pub, k.sec);
+      return k;
+    }
   };
   //---------------------------------------------------------------
 
