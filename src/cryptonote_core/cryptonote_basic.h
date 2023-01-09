@@ -437,7 +437,7 @@ namespace cryptonote
     amount_burnt = 0;
     amount_minted = 0;
     output_unlock_times.clear();
-    collateral_index = 0;
+    collateral_indices.clear();
   }
 
   inline
