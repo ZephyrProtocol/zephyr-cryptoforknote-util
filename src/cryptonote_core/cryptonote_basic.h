@@ -258,7 +258,7 @@ namespace cryptonote
     uint64_t amount_burnt;
     uint64_t amount_minted;
     std::vector<uint64_t> output_unlock_times;
-    size_t collateral_index; // index to the outputs vector that denotes the collateral output.
+    std::vector<uint32_t> collateral_indices;
 
     //
     // NOTE: Loki specific
@@ -313,10 +313,15 @@ namespace cryptonote
         if (version >= POU_TRANSACTION_VERSION && vout_xhv.size() != output_unlock_times.size()) return false;
         VARINT_FIELD(amount_burnt)
         VARINT_FIELD(amount_minted)
-        if (version >= COLLATERAL_TRANSACTION_VERSION) {
-          VARINT_FIELD(collateral_index)
-          if (collateral_index >= vout.size())
+        if (version >= COLLATERAL_TRANSACTION_VERSION && amount_burnt) {
+          FIELD(collateral_indices)
+          if (collateral_indices.size() != 2) {
             return false;
+          }
+          for (const auto vout_idx: collateral_indices) {
+            if (vout_idx >= vout.size())
+              return false;
+          }
         }
       }
     END_SERIALIZE()
