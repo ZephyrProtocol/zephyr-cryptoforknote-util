@@ -657,7 +657,7 @@ namespace cryptonote
       if (blob_type == BLOB_TYPE_CRYPTONOTE_TUBE) FIELD(cycle40)
       if (blob_type == BLOB_TYPE_CRYPTONOTE_XTA) FIELD(cycle48)
       if (blob_type == BLOB_TYPE_CRYPTONOTE_XHV) FIELD(pricing_record)
-      if (blob_type == BLOB_TYPE_CRYPTONOTE_ZEPHYR) FIELD(zephyr_pricing_record)
+      if (blob_type == BLOB_TYPE_CRYPTONOTE_ZEPHYR) FIELD_N("pricing_record", zephyr_pricing_record)
 
     END_SERIALIZE()
   };
