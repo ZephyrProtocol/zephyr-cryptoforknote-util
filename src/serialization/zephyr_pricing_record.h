@@ -40,16 +40,33 @@
 template <template <bool> class Archive>
 bool do_serialize(Archive<false> &ar, zephyr_oracle::pricing_record &pr, uint8_t version)
 {
-  // very basic sanity check
-  if (ar.remaining_bytes() < sizeof(zephyr_oracle::pricing_record)) {
-    ar.stream().setstate(std::ios::failbit);
-    return false;
+  if (version < 3)
+  {
+    // very basic sanity check
+    if (ar.remaining_bytes() < sizeof(zephyr_oracle::pricing_record_v1)) {
+      return false;
+    }
+
+    zephyr_oracle::pricing_record_v1 pr_v1;
+    ar.serialize_blob(&pr_v1, sizeof(zephyr_oracle::pricing_record_v1), "");
+    if (!ar.good())
+      return false;
+
+    if (!pr_v1.write_to_pr(pr))
+      return false;
+  }
+  else
+  {
+    // very basic sanity check
+    if (ar.remaining_bytes() < sizeof(zephyr_oracle::pricing_record)) {
+      return false;
+    }
+
+    ar.serialize_blob(&pr, sizeof(zephyr_oracle::pricing_record), "");
+    if (!ar.good())
+      return false;
   }
 
-  ar.serialize_blob(&pr, sizeof(zephyr_oracle::pricing_record), "");
-  if (!ar.stream().good())
-    return false;
-  
   return true;
 }
 
@@ -59,9 +76,19 @@ bool do_serialize(Archive<true> &ar, zephyr_oracle::pricing_record &pr, uint8_t 
 {
   ar.begin_string();
 
-  ar.serialize_blob(&pr, sizeof(zephyr_oracle::pricing_record), "");
-  
-  if (!ar.stream().good())
+  if (version < 3)
+  {
+    zephyr_oracle::pricing_record_v1 pr_v1;
+    if (!pr_v1.read_from_pr(pr))
+      return false;
+    ar.serialize_blob(&pr_v1, sizeof(zephyr_oracle::pricing_record_v1), "");
+  }
+  else
+  {
+    ar.serialize_blob(&pr, sizeof(zephyr_oracle::pricing_record), "");
+  }
+
+  if (!ar.good())
     return false;
   ar.end_string();
   return true;
