@@ -659,9 +659,23 @@ namespace cryptonote
       if (blob_type == BLOB_TYPE_CRYPTONOTE_XHV) FIELD(pricing_record)
 
       if (blob_type == BLOB_TYPE_CRYPTONOTE_ZEPHYR) {
-        if (major_version >= 3)
+        if (major_version >= 4)
         {
           FIELD_N("pricing_record", zephyr_pricing_record)
+        }
+        else if (major_version >= 3)
+        {
+          zephyr_oracle::pricing_record_v2 pr_v2;
+          if (!typename Archive<W>::is_saving())
+          {
+            FIELD(pr_v2)
+            pr_v2.write_to_pr(zephyr_pricing_record);
+          }
+          else
+          {
+            pr_v2.read_from_pr(zephyr_pricing_record);
+            FIELD(pr_v2)
+          }
         }
         else
         {
