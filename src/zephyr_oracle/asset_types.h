@@ -31,7 +31,7 @@
 
 namespace zephyr_oracle {
 
-  const std::vector<std::string> ASSET_TYPES = {"ZEPH", "ZEPHUSD", "ZEPHRSV"};
+  const std::vector<std::string> ASSET_TYPES = {"ZEPH", "ZEPHUSD", "ZEPHRSV", "ZYIELD"};
 
   class asset_type_counts
   {
@@ -42,11 +42,13 @@ namespace zephyr_oracle {
       uint64_t ZEPH;
       uint64_t ZEPHUSD;
       uint64_t ZEPHRSV;
+      uint64_t ZYIELD;
 
       asset_type_counts() noexcept
         : ZEPH(0)
         , ZEPHUSD(0)
         , ZEPHRSV(0)
+        , ZYIELD(0)
       {
       }
 
@@ -58,6 +60,8 @@ namespace zephyr_oracle {
           return ZEPHUSD;
         } else if (asset_type == "ZEPHRSV") {
           return ZEPHRSV;
+        } else if (asset_type == "ZYIELD") {
+          return ZYIELD;
         }
 
         return 0;
@@ -71,6 +75,8 @@ namespace zephyr_oracle {
           ZEPHUSD += val;
         } else if (asset_type == "ZEPHRSV") {
           ZEPHRSV += val;
+        } else if (asset_type == "ZYIELD") {
+          ZYIELD += val;
         }
       }
   };
