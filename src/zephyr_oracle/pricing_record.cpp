@@ -61,8 +61,8 @@ namespace zephyr_oracle
         KV_SERIALIZE(reserve_ma)
         KV_SERIALIZE(reserve_ratio)
         KV_SERIALIZE(reserve_ratio_ma)
-        KV_SERIALIZE(timestamp)
         KV_SERIALIZE(yield_price)
+        KV_SERIALIZE(timestamp)
         KV_SERIALIZE(signature)
       END_KV_SERIALIZE_MAP()
     };
