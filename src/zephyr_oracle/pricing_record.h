@@ -220,7 +220,7 @@ namespace zephyr_oracle
     uint64_t timestamp;
     unsigned char signature[64];
 
-    bool write_to_pr(oracle::pricing_record &pr)
+    bool write_to_pr(zephyr_oracle::pricing_record &pr)
     {
       pr.spot = spot;
       pr.moving_average = moving_average;
@@ -236,7 +236,7 @@ namespace zephyr_oracle
       return true;
     };
 
-    bool read_from_pr(oracle::pricing_record &pr)
+    bool read_from_pr(zephyr_oracle::pricing_record &pr)
     {
       spot = pr.spot;
       moving_average = pr.moving_average;
